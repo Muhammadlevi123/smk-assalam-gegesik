@@ -4,6 +4,9 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Website Resmi SMK As Salam Gegesik - Sekolah Menengah Kejuruan di Kabupaten Cirebon, Jawa Barat">
+        <meta name="keywords" content="SMK As Salam Gegesik, SMK Gegesik, Sekolah Kejuruan Cirebon, smkassalamgegesik">
+        <meta name="robots" content="index, follow">
 
         {{-- Inline script to detect system dark mode preference and apply it immediately --}}
         <script>
