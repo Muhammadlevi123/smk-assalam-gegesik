@@ -1,3 +1,15 @@
+<!--
+    PERUBAHAN DARI KODE ASLI:
+
+    1. Tambah computed helper uniqueMapelCount(guru)
+       → hitung unique berdasarkan mata_pelajaran_id, bukan panjang array
+
+    2. Ganti semua item.mataPelajaran.length
+       → uniqueMapelCount(item)
+
+    3. mapelGrouped sudah benar (group per id), tidak perlu diubah
+-->
+
 <script setup lang="ts">
 import AppLayout from '../../../layouts/AppLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
@@ -31,7 +43,6 @@ interface TahunAjaran {
     pivot: { guru_id: number; tahun_ajaran_id: number; status: string };
 }
 
-// ✅ Hapus tingkat & jurusan dari interface MataPelajaran
 interface MataPelajaran {
     id: number;
     nama: string;
@@ -134,8 +145,13 @@ const confirmDelete = () => {
 const openMapelModal  = (guru: Guru) => { selectedGuruMapel.value = guru; showMapelModal.value = true; };
 const closeMapelModal = () => { showMapelModal.value = false; selectedGuruMapel.value = null; };
 
-// Flat list + grouped per mapel (guru bisa mengajar mapel yg sama di beda tahun)
-// ✅ Hanya nama + tahun ajaran — tidak ada tingkat & jurusan
+// ✅ FIX: Hitung unique mata pelajaran berdasarkan id (bukan panjang array)
+// Satu mapel bisa punya banyak pivot (beda tahun ajaran) — tetap dihitung 1
+const uniqueMapelCount = (guru: Guru): number => {
+    if (!guru.mataPelajaran?.length) return 0;
+    return new Set(guru.mataPelajaran.map(m => m.id)).size;
+};
+
 const mapelFlat = computed(() => {
     if (!selectedGuruMapel.value?.mataPelajaran?.length) return [];
     return [...selectedGuruMapel.value.mataPelajaran]
@@ -315,7 +331,7 @@ onUnmounted(() => { clearCountdown(); });
                         </div>
                     </div>
 
-                    <!-- Desktop Table — hapus kolom Alamat -->
+                    <!-- Desktop Table -->
                     <div v-if="guru.data.length > 0" class="hidden lg:block overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50/80 dark:bg-gray-800/50">
@@ -330,8 +346,6 @@ onUnmounted(() => { clearCountdown(); });
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
                                 <tr v-for="item in guru.data" :key="item.id" class="group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-
-                                    <!-- Guru (foto + nama) -->
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center gap-4">
                                             <img :src="getPhotoUrl(item.foto)" :alt="item.nama"
@@ -341,13 +355,9 @@ onUnmounted(() => { clearCountdown(); });
                                             </div>
                                         </div>
                                     </td>
-
-                                    <!-- NIP -->
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-gray-900 dark:text-white">{{ item.nip }}</div>
                                     </td>
-
-                                    <!-- Jenis Kelamin -->
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span :class="item.jenis_kelamin === 'Laki-laki' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300'"
                                             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
@@ -355,25 +365,22 @@ onUnmounted(() => { clearCountdown(); });
                                         </span>
                                     </td>
 
-                                    <!-- Mata Pelajaran -->
+                                    <!-- ✅ FIX: pakai uniqueMapelCount(item) bukan item.mataPelajaran.length -->
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <button v-if="item.mataPelajaran && item.mataPelajaran.length > 0"
+                                        <button v-if="uniqueMapelCount(item) > 0"
                                             @click="openMapelModal(item)"
                                             class="group/mapel inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 shadow-sm transition-all hover:bg-indigo-100 hover:shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/40 dark:focus:ring-offset-gray-900">
                                             <span v-html="BookIcon()" class="transition-transform group-hover/mapel:scale-110"></span>
-                                            {{ item.mataPelajaran.length }} Mapel
+                                            {{ uniqueMapelCount(item) }} Mapel
                                         </button>
                                         <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
                                     </td>
 
-                                    <!-- Status -->
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span :class="getStatusColor(getGuruStatus(item))" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
                                             {{ getGuruStatus(item) }}
                                         </span>
                                     </td>
-
-                                    <!-- Aksi -->
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <Link :href="route('admin.guru.show', item.id)"
@@ -395,7 +402,7 @@ onUnmounted(() => { clearCountdown(); });
                         </table>
                     </div>
 
-                    <!-- Mobile Card View — hapus alamat -->
+                    <!-- Mobile Card View -->
                     <div v-if="guru.data.length > 0" class="lg:hidden divide-y divide-gray-100 dark:divide-gray-800">
                         <div v-for="item in guru.data" :key="item.id" class="p-4">
                             <div class="flex items-start gap-3">
@@ -409,17 +416,17 @@ onUnmounted(() => { clearCountdown(); });
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">NIP: {{ item.nip }}</p>
                                 </div>
                             </div>
-                            <!-- Hanya jenis kelamin + mapel — tidak ada alamat -->
                             <div class="mt-3 grid grid-cols-2 gap-2">
                                 <div class="rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Jenis Kelamin</p>
                                     <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ item.jenis_kelamin }}</p>
                                 </div>
+                                <!-- ✅ FIX: pakai uniqueMapelCount(item) -->
                                 <div class="rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Mata Pelajaran</p>
-                                    <button v-if="item.mataPelajaran && item.mataPelajaran.length > 0" @click="openMapelModal(item)"
+                                    <button v-if="uniqueMapelCount(item) > 0" @click="openMapelModal(item)"
                                         class="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:border-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400">
-                                        <span v-html="BookIcon()"></span>{{ item.mataPelajaran.length }} Mapel
+                                        <span v-html="BookIcon()"></span>{{ uniqueMapelCount(item) }} Mapel
                                     </button>
                                     <span v-else class="text-sm font-medium text-gray-900 dark:text-white">-</span>
                                 </div>
@@ -479,45 +486,27 @@ onUnmounted(() => { clearCountdown(); });
             </div>
         </div>
 
-        <!-- ══ Modal Mata Pelajaran — hanya nama + tahun ajaran (grouped) ══ -->
-        <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0"
-            enter-to-class="opacity-100" leave-active-class="transition-all duration-200"
-            leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <!-- Modal Mata Pelajaran -->
+        <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0">
             <div v-if="showMapelModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="closeMapelModal">
                 <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
-
-                <Transition enter-active-class="transition-all duration-300"
-                    enter-from-class="opacity-0 scale-95 translate-y-4"
-                    enter-to-class="opacity-100 scale-100 translate-y-0"
-                    leave-active-class="transition-all duration-200"
-                    leave-from-class="opacity-100 scale-100 translate-y-0"
-                    leave-to-class="opacity-0 scale-95 translate-y-4"
-                    appear>
+                <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition-all duration-200" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 translate-y-4" appear>
                     <div class="relative w-full max-w-lg transform rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden">
-
-                        <!-- Header -->
                         <div class="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-6 py-4 dark:border-gray-800 dark:bg-gray-800/50">
                             <div>
                                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">Mata Pelajaran Diampu</h3>
                                 <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ selectedGuruMapel?.nama }}</p>
                             </div>
-                            <button @click="closeMapelModal"
-                                class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
+                            <button @click="closeMapelModal" class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200">
                                 <span v-html="XMarkIcon()"></span>
                             </button>
                         </div>
-
-                        <!-- Body: grouped per mapel, nama + badge tahun ajaran -->
                         <div class="max-h-[60vh] overflow-y-auto p-6">
-
                             <div v-if="mapelGrouped.length > 0" class="space-y-0 divide-y divide-gray-100 dark:divide-gray-800">
-                                <div v-for="m in mapelGrouped" :key="m.id"
-                                    class="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
-                                    <!-- Ikon buku -->
+                                <div v-for="m in mapelGrouped" :key="m.id" class="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
                                     <div class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
                                         <span v-html="BookIcon()" class="text-indigo-600 dark:text-indigo-400" style="width:14px;height:14px;"></span>
                                     </div>
-                                    <!-- Nama + badge tahun ajaran -->
                                     <div class="min-w-0 flex-1">
                                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ m.nama }}</p>
                                         <div class="mt-1.5 flex flex-wrap gap-1">
@@ -529,8 +518,6 @@ onUnmounted(() => { clearCountdown(); });
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Kosong -->
                             <div v-else class="flex flex-col items-center justify-center py-12">
                                 <div class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                                     <span v-html="BookIcon()" class="text-gray-400" style="width:22px;height:22px;"></span>
@@ -538,21 +525,17 @@ onUnmounted(() => { clearCountdown(); });
                                 <p class="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400">Belum ada mata pelajaran yang diampu</p>
                             </div>
                         </div>
-
-                        <!-- Footer -->
                         <div class="flex items-center justify-between border-t border-gray-100 bg-gray-50/80 px-6 py-3 dark:border-gray-800 dark:bg-gray-800/50">
+                            <!-- ✅ FIX: footer modal juga pakai mapelGrouped.length (sudah benar) -->
                             <span class="text-xs text-gray-500 dark:text-gray-400">{{ mapelGrouped.length }} mata pelajaran</span>
-                            <button @click="closeMapelModal"
-                                class="rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900">
-                                Tutup
-                            </button>
+                            <button @click="closeMapelModal" class="rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900">Tutup</button>
                         </div>
                     </div>
                 </Transition>
             </div>
         </Transition>
 
-        <!-- ══ Delete Modal ══════════════════════════════════════════ -->
+        <!-- Delete Modal -->
         <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto" @click.self="showDeleteModal = false">
             <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"></div>
             <div class="relative mx-4 w-full max-w-md transform rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 transition-all dark:bg-gray-900 dark:ring-white/10">
@@ -579,7 +562,7 @@ onUnmounted(() => { clearCountdown(); });
             </div>
         </div>
 
-        <!-- ══ Success Delete Popup ══════════════════════════════════ -->
+        <!-- Success Popups -->
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
             <div v-if="showSuccessDeletePopup" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
                 <div class="fixed inset-0 bg-black/20 backdrop-blur-sm" @click="closeSuccessDeletePopup"></div>
@@ -592,8 +575,6 @@ onUnmounted(() => { clearCountdown(); });
                 </div>
             </div>
         </Transition>
-
-        <!-- ══ Success Create Popup ══════════════════════════════════ -->
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
             <div v-if="showSuccessCreatePopup" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
                 <div class="fixed inset-0 bg-black/20 backdrop-blur-sm" @click="closeSuccessCreatePopup"></div>
@@ -606,8 +587,6 @@ onUnmounted(() => { clearCountdown(); });
                 </div>
             </div>
         </Transition>
-
-        <!-- ══ Success Update Popup ══════════════════════════════════ -->
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
             <div v-if="showSuccessUpdatePopup" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
                 <div class="fixed inset-0 bg-black/20 backdrop-blur-sm" @click="closeSuccessUpdatePopup"></div>
