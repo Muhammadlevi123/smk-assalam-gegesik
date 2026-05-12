@@ -29,8 +29,8 @@ class KelasController extends Controller
                 ->orWhere('tingkat',   'LIKE', "%{$s}%"));
         }
 
-        if ($request->filled('jurusan'))     $query->where('jurusan', $request->get('jurusan'));
-        if ($request->filled('tingkat'))     $query->where('tingkat', $request->get('tingkat'));
+        if ($request->filled('jurusan')) $query->where('jurusan', $request->get('jurusan'));
+        if ($request->filled('tingkat')) $query->where('tingkat', $request->get('tingkat'));
 
         if ($request->filled('tahun_ajaran')) {
             $taId = TahunAjaran::where('tahun', $request->get('tahun_ajaran'))->first()?->id;
@@ -86,7 +86,7 @@ class KelasController extends Controller
         $guru = Guru::with(['tahunAjaran' => fn ($q) => $q->select('tahun_ajaran.id', 'tahun_ajaran.tahun')])
             ->orderBy('nama')->get()
             ->map(function ($g) {
-                $g->tahun_ajaran_tersedia     = $g->tahunAjaran->pluck('id')->map(fn ($id) => (int) $id)->toArray();
+                $g->tahun_ajaran_tersedia      = $g->tahunAjaran->pluck('id')->map(fn ($id) => (int) $id)->toArray();
                 $g->existing_wali_tahun_ajaran = DB::table('wali_kelas')->where('guru_id', $g->id)
                     ->pluck('tahun_ajaran_id')->map(fn ($id) => (int) $id)->toArray();
                 unset($g->tahunAjaran);
@@ -99,35 +99,43 @@ class KelasController extends Controller
                 $s->tahun_ajaran_aktif = $s->tahunAjaranStatus
                     ->filter(fn ($ta) => $ta->pivot->status === 'Aktif')
                     ->pluck('id')->map(fn ($id) => (int) $id)->toArray();
-
                 $s->existing_kelas_tahun = DB::table('siswa_kelas')->where('siswa_id', $s->id)
                     ->get(['kelas_id', 'tahun_ajaran_id'])
                     ->map(fn ($r) => ['kelas_id' => (int) $r->kelas_id, 'tahun_ajaran_id' => (int) $r->tahun_ajaran_id])
                     ->toArray();
-
                 unset($s->tahunAjaranStatus);
                 return $s;
             });
+
+        // ✅ jurusanList untuk combobox — ambil dari data yang sudah ada
+        $jurusanList = Kelas::select('jurusan')
+            ->distinct()
+            ->orderBy('jurusan')
+            ->whereNotNull('jurusan')
+            ->where('jurusan', '!=', '')
+            ->pluck('jurusan')
+            ->map(fn ($j) => ['value' => $j, 'label' => $j]);
 
         return Inertia::render('admin/kelas/Create', [
             'tahunAjaran' => $tahunAjaran,
             'guru'        => $guru,
             'siswa'       => $siswa,
+            'jurusanList' => $jurusanList,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'nama_kelas'                          => 'required|string|max:255',
-            'jurusan'                             => 'required|string|max:255',
-            'tingkat'                             => 'required|string|max:255',
-            'wali_kelas'                          => 'nullable|array',
-            'wali_kelas.*.guru_id'                => 'required_with:wali_kelas|exists:guru,id',
-            'wali_kelas.*.tahun_ajaran_id'        => 'required_with:wali_kelas|exists:tahun_ajaran,id',
-            'siswa_kelas'                         => 'nullable|array',
-            'siswa_kelas.*.siswa_id'              => 'required_with:siswa_kelas|exists:siswa,id',
-            'siswa_kelas.*.tahun_ajaran_id'       => 'required_with:siswa_kelas|exists:tahun_ajaran,id',
+            'nama_kelas'                    => 'required|string|max:255',
+            'jurusan'                       => 'required|string|max:255',
+            'tingkat'                       => 'required|string|max:255',
+            'wali_kelas'                    => 'nullable|array',
+            'wali_kelas.*.guru_id'          => 'required_with:wali_kelas|exists:guru,id',
+            'wali_kelas.*.tahun_ajaran_id'  => 'required_with:wali_kelas|exists:tahun_ajaran,id',
+            'siswa_kelas'                   => 'nullable|array',
+            'siswa_kelas.*.siswa_id'        => 'required_with:siswa_kelas|exists:siswa,id',
+            'siswa_kelas.*.tahun_ajaran_id' => 'required_with:siswa_kelas|exists:tahun_ajaran,id',
         ]);
 
         if (Kelas::where('nama_kelas', $validated['nama_kelas'])->exists()) {
@@ -183,7 +191,8 @@ class KelasController extends Controller
         ])->findOrFail($id);
 
         $kelas->wali_kelas_detail = $kelas->waliKelas->map(fn ($w) => [
-            'id' => $w->id, 'nama' => $w->nama,
+            'id'              => $w->id,
+            'nama'            => $w->nama,
             'tahun_ajaran_id' => $w->pivot->tahun_ajaran_id,
             'tahun_ajaran'    => TahunAjaran::find($w->pivot->tahun_ajaran_id)?->tahun ?? '-',
         ]);
@@ -196,11 +205,14 @@ class KelasController extends Controller
                 ->orderByRaw('CAST(SUBSTRING_INDEX(tahun_ajaran.tahun, "/", 1) AS UNSIGNED) DESC')
                 ->first();
             return [
-                'id' => $s->id, 'nis' => $s->nis, 'nama' => $s->nama,
-                'jenis_kelamin' => $s->jenis_kelamin, 'foto' => $s->foto,
+                'id'             => $s->id,
+                'nis'            => $s->nis,
+                'nama'           => $s->nama,
+                'jenis_kelamin'  => $s->jenis_kelamin,
+                'foto'           => $s->foto,
                 'tahun_ajaran_id' => $s->pivot->tahun_ajaran_id,
-                'status_terkini'  => $st?->status ?? 'Aktif',
-                'tahun_ajaran'    => TahunAjaran::find($s->pivot->tahun_ajaran_id)?->tahun ?? '-',
+                'status_terkini' => $st?->status ?? 'Aktif',
+                'tahun_ajaran'   => TahunAjaran::find($s->pivot->tahun_ajaran_id)?->tahun ?? '-',
             ];
         });
 
@@ -230,7 +242,7 @@ class KelasController extends Controller
         $guru = Guru::with(['tahunAjaran' => fn ($q) => $q->select('tahun_ajaran.id', 'tahun_ajaran.tahun')])
             ->orderBy('nama')->get()
             ->map(function ($g) use ($id) {
-                $g->tahun_ajaran_tersedia     = $g->tahunAjaran->pluck('id')->map(fn ($v) => (int) $v)->toArray();
+                $g->tahun_ajaran_tersedia      = $g->tahunAjaran->pluck('id')->map(fn ($v) => (int) $v)->toArray();
                 $g->existing_wali_tahun_ajaran = DB::table('wali_kelas')
                     ->where('guru_id', $g->id)->where('kelas_id', '!=', $id)
                     ->pluck('tahun_ajaran_id')->map(fn ($v) => (int) $v)->toArray();
@@ -244,19 +256,17 @@ class KelasController extends Controller
                 $s->tahun_ajaran_aktif = $s->tahunAjaranStatus
                     ->filter(fn ($ta) => $ta->pivot->status === 'Aktif')
                     ->pluck('id')->map(fn ($v) => (int) $v)->toArray();
-
                 $s->existing_kelas_tahun = DB::table('siswa_kelas')
                     ->where('siswa_id', $s->id)->where('kelas_id', '!=', $id)
                     ->get(['kelas_id', 'tahun_ajaran_id'])
                     ->map(fn ($r) => ['kelas_id' => (int) $r->kelas_id, 'tahun_ajaran_id' => (int) $r->tahun_ajaran_id])
                     ->toArray();
-
                 unset($s->tahunAjaranStatus);
                 return $s;
             });
 
         $kelas->wali_kelas_form = $kelas->waliKelas->map(fn ($w) => [
-            'guru_id' => (string) $w->id,
+            'guru_id'         => (string) $w->id,
             'tahun_ajaran_id' => (string) $w->pivot->tahun_ajaran_id,
         ])->toArray();
 
@@ -265,7 +275,7 @@ class KelasController extends Controller
         }
 
         $kelas->siswa_kelas_form = $kelas->siswa->map(fn ($s) => [
-            'siswa_id' => (string) $s->id,
+            'siswa_id'        => (string) $s->id,
             'tahun_ajaran_id' => (string) $s->pivot->tahun_ajaran_id,
         ])->toArray();
 
@@ -273,8 +283,14 @@ class KelasController extends Controller
             $kelas->siswa_kelas_form = [['siswa_id' => '', 'tahun_ajaran_id' => '']];
         }
 
-        $jurusanList = Kelas::select('jurusan')->distinct()->orderBy('jurusan')->pluck('jurusan')
-            ->map(fn ($j) => ['nama' => $j]);
+        // ✅ jurusanList untuk combobox — exclude jurusan kelas ini sendiri agar tetap muncul di list
+        $jurusanList = Kelas::select('jurusan')
+            ->distinct()
+            ->orderBy('jurusan')
+            ->whereNotNull('jurusan')
+            ->where('jurusan', '!=', '')
+            ->pluck('jurusan')
+            ->map(fn ($j) => ['value' => $j, 'label' => $j]);
 
         return Inertia::render('admin/kelas/Edit', [
             'kelas'       => $kelas,
@@ -290,15 +306,15 @@ class KelasController extends Controller
         $kelas = Kelas::findOrFail($id);
 
         $validated = $request->validate([
-            'nama_kelas'                          => ['required', 'string', 'max:255', Rule::unique('kelas')->ignore($kelas->id)],
-            'jurusan'                             => 'required|string|max:255',
-            'tingkat'                             => 'required|string|max:255',
-            'wali_kelas'                          => 'nullable|array',
-            'wali_kelas.*.guru_id'                => 'required_with:wali_kelas|exists:guru,id',
-            'wali_kelas.*.tahun_ajaran_id'        => 'required_with:wali_kelas|exists:tahun_ajaran,id',
-            'siswa_kelas'                         => 'nullable|array',
-            'siswa_kelas.*.siswa_id'              => 'required_with:siswa_kelas|exists:siswa,id',
-            'siswa_kelas.*.tahun_ajaran_id'       => 'required_with:siswa_kelas|exists:tahun_ajaran,id',
+            'nama_kelas'                    => ['required', 'string', 'max:255', Rule::unique('kelas')->ignore($kelas->id)],
+            'jurusan'                       => 'required|string|max:255',
+            'tingkat'                       => 'required|string|max:255',
+            'wali_kelas'                    => 'nullable|array',
+            'wali_kelas.*.guru_id'          => 'required_with:wali_kelas|exists:guru,id',
+            'wali_kelas.*.tahun_ajaran_id'  => 'required_with:wali_kelas|exists:tahun_ajaran,id',
+            'siswa_kelas'                   => 'nullable|array',
+            'siswa_kelas.*.siswa_id'        => 'required_with:siswa_kelas|exists:siswa,id',
+            'siswa_kelas.*.tahun_ajaran_id' => 'required_with:siswa_kelas|exists:tahun_ajaran,id',
         ]);
 
         foreach ($validated['wali_kelas'] ?? [] as $d) {
@@ -375,7 +391,11 @@ class KelasController extends Controller
             ->join('guru', 'wali_kelas.guru_id', '=', 'guru.id')
             ->join('tahun_ajaran', 'wali_kelas.tahun_ajaran_id', '=', 'tahun_ajaran.id')
             ->where('wali_kelas.kelas_id', $id)
-            ->select('guru.id as guru_id', 'guru.nama as guru_nama', 'tahun_ajaran.id as tahun_ajaran_id', 'tahun_ajaran.tahun as tahun_ajaran', 'wali_kelas.created_at', 'wali_kelas.updated_at')
+            ->select(
+                'guru.id as guru_id', 'guru.nama as guru_nama',
+                'tahun_ajaran.id as tahun_ajaran_id', 'tahun_ajaran.tahun as tahun_ajaran',
+                'wali_kelas.created_at', 'wali_kelas.updated_at'
+            )
             ->orderBy('tahun_ajaran.tahun', 'desc')->get();
 
         return response()->json(['success' => true, 'data' => $history]);

@@ -37,11 +37,9 @@ class MataPelajaranController extends Controller
 
         $mataPelajaran->getCollection()->transform(function ($mapel) {
             $pengajar = [];
-
             foreach ($mapel->guru as $guru) {
                 $tahunAjaran = TahunAjaran::find($guru->pivot->tahun_ajaran_id);
                 if (!$tahunAjaran) continue;
-
                 $pengajar[] = [
                     'guru_id'         => $guru->id,
                     'guru_nama'       => $guru->nama,
@@ -51,12 +49,9 @@ class MataPelajaranController extends Controller
                     'tahun_sort'      => (int) explode('/', $tahunAjaran->tahun)[0],
                 ];
             }
-
             usort($pengajar, fn ($a, $b) => $b['tahun_sort'] - $a['tahun_sort']);
-
             $mapel->pengajar        = $pengajar;
             $mapel->jumlah_pengajar = count($pengajar);
-
             return $mapel;
         });
 
@@ -84,9 +79,15 @@ class MataPelajaranController extends Controller
                 return $g;
             });
 
+        // ✅ Daftar nama mata pelajaran yang sudah ada — untuk combobox
+        $existingNamaList = MataPelajaran::orderBy('nama')
+            ->get()
+            ->map(fn ($m) => ['value' => $m->nama, 'label' => $m->nama]);
+
         return Inertia::render('admin/mata-pelajaran/Create', [
-            'tahunAjaran' => $tahunAjaran,
-            'guru'        => $guru,
+            'tahunAjaran'      => $tahunAjaran,
+            'guru'             => $guru,
+            'existingNamaList' => $existingNamaList, // ✅ tambahan
         ]);
     }
 
@@ -133,7 +134,6 @@ class MataPelajaranController extends Controller
         foreach ($mapel->guru as $guru) {
             $tahunAjaran = TahunAjaran::find($guru->pivot->tahun_ajaran_id);
             if (!$tahunAjaran) continue;
-
             $pengajar[] = [
                 'guru_id'         => $guru->id,
                 'guru_nama'       => $guru->nama,
@@ -146,7 +146,6 @@ class MataPelajaranController extends Controller
         }
 
         usort($pengajar, fn ($a, $b) => strcmp($b['tahun_ajaran'], $a['tahun_ajaran']));
-
         $mapel->pengajar        = $pengajar;
         $mapel->jumlah_pengajar = count($pengajar);
 
@@ -156,7 +155,6 @@ class MataPelajaranController extends Controller
     public function edit(string $id)
     {
         $mapel = MataPelajaran::with(['guru' => fn ($q) => $q->orderBy('nama')])->findOrFail($id);
-
         $tahunAjaran = TahunAjaran::orderBy('tahun')->get();
 
         $guru = Guru::with(['tahunAjaran' => fn ($q) => $q->select('tahun_ajaran.id', 'tahun_ajaran.tahun')])
@@ -182,10 +180,17 @@ class MataPelajaranController extends Controller
             $mapel->pengajaran = [['guru_id' => '', 'tahun_ajaran_id' => '']];
         }
 
+        // ✅ Daftar nama mata pelajaran yang sudah ada (kecuali diri sendiri)
+        $existingNamaList = MataPelajaran::where('id', '!=', $id)
+            ->orderBy('nama')
+            ->get()
+            ->map(fn ($m) => ['value' => $m->nama, 'label' => $m->nama]);
+
         return Inertia::render('admin/mata-pelajaran/Edit', [
-            'mataPelajaran' => $mapel,
-            'tahunAjaran'   => $tahunAjaran,
-            'guru'          => $guru,
+            'mataPelajaran'    => $mapel,
+            'tahunAjaran'      => $tahunAjaran,
+            'guru'             => $guru,
+            'existingNamaList' => $existingNamaList, // ✅ tambahan
         ]);
     }
 
