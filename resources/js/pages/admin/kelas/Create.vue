@@ -262,10 +262,10 @@ const handleSubmit = async () => {
                                 <!-- Nama Kelas -->
                                 <div ref="refNamaKelas" class="space-y-1.5">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nama Kelas <span class="text-red-500">*</span></label>
-                                    <input v-model="formState.nama_kelas" @input="delete localErrors['nama_kelas']" type="text" placeholder="Contoh: X-TKJ-1"
+                                    <input v-model="formState.nama_kelas" @input="delete localErrors['nama_kelas']" type="text" placeholder="Contoh: X TKJ 1"
                                         :class="localErrors.nama_kelas || serverErrors.nama_kelas ? 'ring-red-400 focus:ring-red-500' : 'ring-gray-200 focus:ring-blue-600'"
                                         class="block w-full rounded-xl border-0 bg-gray-50 py-3 px-4 text-sm text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:bg-white focus:ring-2 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:placeholder:text-gray-500 dark:focus:bg-gray-700" />
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">Contoh: X-TKJ-1, XI-IPA-2</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Contoh: X TKJ 1</p>
                                     <p v-if="localErrors.nama_kelas || serverErrors.nama_kelas" class="text-xs text-red-500 dark:text-red-400 flex items-center gap-1"><span v-html="ErrIcon()"></span>{{ localErrors.nama_kelas || serverErrors.nama_kelas }}</p>
                                 </div>
 
