@@ -94,7 +94,7 @@ import { Link } from '@inertiajs/vue3';
             <div class="border-t border-gray-700 pt-8">
                 <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
                     <div class="text-gray-300 text-sm">
-                        <p>&copy; 2025 SMK Assalam Gegesik. All rights reserved. <span
+                        <p>&copy; 2026 SMK Assalam Gegesik. All rights reserved. <span
                                 class="text-gray-800 break-all">by Levi</span></p>
                     </div>
                     <!-- <div class="flex space-x-4 text-gray-300 text-sm">

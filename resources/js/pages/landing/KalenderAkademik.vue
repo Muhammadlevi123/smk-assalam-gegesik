@@ -29,10 +29,19 @@ const BULAN_NAMA = [
     'Juli','Agustus','September','Oktober','November','Desember'
 ];
 
+// ✅ FIX: parse tanggal string sebagai local time (bukan UTC)
+const parseLocalDate = (str: string): Date => new Date(str + 'T00:00:00');
+
+// ✅ FIX: today pakai local date (bukan UTC via toISOString)
+const getLocalDateStr = (d: Date): string =>
+    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+const today = getLocalDateStr(new Date());
+
 // ─── Navigasi bulan ─────────────────────────────
 const getBulanPertama = () => {
     if (props.kalender && props.kalender.length > 0)
-        return new Date(props.kalender[0].tanggal_mulai + 'T00:00:00');
+        return parseLocalDate(props.kalender[0].tanggal_mulai);
     const t = new Date();
     return new Date(t.getFullYear(), t.getMonth(), 1);
 };
@@ -66,11 +75,13 @@ const eventPadaTanggal = computed(() => {
     const map: Record<string, KalenderItem[]> = {};
     props.kalender?.forEach(item => {
         if (!item.tanggal_mulai) return;
-        const mulai   = new Date(item.tanggal_mulai   + 'T00:00:00');
-        const selesai = item.tanggal_selesai ? new Date(item.tanggal_selesai + 'T00:00:00') : mulai;
+        // ✅ FIX: pakai parseLocalDate agar tidak ada offset UTC
+        const mulai   = parseLocalDate(item.tanggal_mulai);
+        const selesai = item.tanggal_selesai ? parseLocalDate(item.tanggal_selesai) : new Date(mulai);
         const cur = new Date(mulai);
         while (cur <= selesai) {
-            const key = cur.toISOString().slice(0, 10);
+            // ✅ FIX: pakai getLocalDateStr agar key tanggal akurat
+            const key = getLocalDateStr(cur);
             if (!map[key]) map[key] = [];
             if (!map[key].find(e => e.id === item.id)) map[key].push(item);
             cur.setDate(cur.getDate() + 1);
@@ -79,7 +90,6 @@ const eventPadaTanggal = computed(() => {
     return map;
 });
 
-const today = new Date().toISOString().slice(0, 10);
 const isToday = (s: string | null) => s === today;
 
 // ─── Popover ────────────────────────────────────
@@ -90,21 +100,17 @@ const selectedEvents  = computed(() =>
 );
 const selectedDateLabel = computed(() => {
     if (!selectedDate.value) return '';
-    const d = new Date(selectedDate.value + 'T00:00:00');
+    const d = parseLocalDate(selectedDate.value);
     return d.getDate() + ' ' + BULAN_NAMA[d.getMonth()] + ' ' + d.getFullYear();
 });
 
-// Simpan referensi elemen sel yang diklik
 const anchorEl = ref<HTMLElement | null>(null);
-
-// Posisi popover (fixed viewport)
 const popoverStyle = ref<Record<string, string>>({});
 const arrowDir     = ref<'up'|'down'>('up');
 
 const POPOVER_W = 260;
 const POPOVER_H = 200;
 
-// Hitung ulang posisi popover berdasarkan anchor el saat ini
 const popoverEl = ref<HTMLElement | null>(null);
 
 const hitungPosisi = () => {
@@ -112,13 +118,11 @@ const hitungPosisi = () => {
     const r    = anchorEl.value.getBoundingClientRect();
     const pH   = popoverEl.value ? popoverEl.value.offsetHeight : POPOVER_H;
 
-    // Horizontal: tengah sel, clamp agar tidak keluar layar
     let left = r.left + r.width / 2 - POPOVER_W / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - POPOVER_W - 8));
 
     const spaceBelow = window.innerHeight - r.bottom;
     if (spaceBelow >= pH + 16) {
-        // Popover di BAWAH sel — arrow mengarah KE ATAS (✓ sudah benar)
         arrowDir.value = 'up';
         popoverStyle.value = {
             top:   (r.bottom + 8) + 'px',
@@ -126,8 +130,6 @@ const hitungPosisi = () => {
             width: POPOVER_W + 'px',
         };
     } else {
-        // Popover di ATAS sel — arrow mengarah KE BAWAH
-        // top = posisi atas sel dikurangi tinggi popover dan gap
         arrowDir.value = 'down';
         popoverStyle.value = {
             top:   (r.top - pH - 8) + 'px',
@@ -137,7 +139,6 @@ const hitungPosisi = () => {
     }
 };
 
-// Event handler scroll dan resize → update posisi realtime
 const onScroll = () => { if (showPopover.value) hitungPosisi(); };
 const onResize = () => { if (showPopover.value) hitungPosisi(); };
 
@@ -148,7 +149,6 @@ const pilihTanggal = (tglStr: string | null, event?: MouseEvent) => {
         anchorEl.value = null;
         return;
     }
-    // Toggle
     if (selectedDate.value === tglStr && showPopover.value) {
         showPopover.value = false;
         selectedDate.value = null;
@@ -158,7 +158,6 @@ const pilihTanggal = (tglStr: string | null, event?: MouseEvent) => {
     selectedDate.value = tglStr;
     anchorEl.value = event?.currentTarget as HTMLElement ?? null;
     showPopover.value = true;
-    // Hitung posisi setelah popover render supaya offsetHeight akurat
     nextTick(() => hitungPosisi());
 };
 
@@ -176,7 +175,8 @@ const gantiTahunAjaran = (id: number) => {
 // ─── Format tanggal tabel ───────────────────────
 const formatTgl = (str: string) => {
     if (!str) return '-';
-    const d = new Date(str + 'T00:00:00');
+    // ✅ FIX: pakai parseLocalDate agar tidak offset
+    const d = parseLocalDate(str);
     return d.getDate() + ' ' + BULAN_NAMA[d.getMonth()] + ' ' + d.getFullYear();
 };
 
@@ -326,9 +326,7 @@ onUnmounted(() => {
                         <!-- Rangkuman tabel -->
                         <div class="rangkuman fade-in">
                             <div class="article-line"></div>
-                            <h2 class="rangkuman-title">
-                                Daftar Kegiatan
-                            </h2>
+                            <h2 class="rangkuman-title">Daftar Kegiatan</h2>
                             <div class="table-wrap">
                                 <table class="data-table">
                                     <thead>
@@ -471,7 +469,6 @@ onUnmounted(() => {
 /* Rangkuman */
 .rangkuman{display:flex;flex-direction:column;gap:14px}
 .rangkuman-title{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--gray900);margin:0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.rangkuman-ta{font-size:12px;font-weight:700;background:#f0fdf4;color:var(--g700);border:1px solid #bbf7d0;border-radius:100px;padding:3px 12px;font-family:var(--fb)}
 .table-wrap{border:1px solid var(--gray200);border-radius:10px;overflow:hidden;overflow-x:auto}
 .data-table{width:100%;border-collapse:collapse;font-size:13px}
 .data-table thead{background:var(--gray50)}
@@ -488,7 +485,6 @@ onUnmounted(() => {
 .empty-icon{display:block;margin:0 auto 14px}
 .empty-state p{font-size:14px}
 
-/* OVERLAY & POPOVER — global (tidak scoped) */
 .popover-overlay{position:fixed;inset:0;z-index:998;background:transparent}
 
 .pop-enter-active{transition:opacity .18s ease,transform .2s cubic-bezier(.34,1.56,.64,1)}
@@ -504,7 +500,6 @@ onUnmounted(() => {
 }
 </style>
 
-<!-- STYLE GLOBAL untuk popover (tidak kena scoped hash) -->
 <style>
 .popover-box {
     position: fixed;
@@ -513,10 +508,8 @@ onUnmounted(() => {
     border-radius: 10px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.15), 0 1px 4px rgba(0,0,0,0.08);
     border: 1px solid #e5e7eb;
-    overflow: visible; /* penting agar ekor tidak terpotong */
+    overflow: visible;
 }
-
-/* ── Ekor bubble — arrow ke BAWAH (popover di atas sel) ── */
 .popover-box.arr-down::after {
     content: '';
     position: absolute;
@@ -529,7 +522,6 @@ onUnmounted(() => {
     border-top: 12px solid white;
     filter: drop-shadow(0 2px 2px rgba(0,0,0,0.08));
 }
-/* Border ekor (layer di belakang) */
 .popover-box.arr-down::before {
     content: '';
     position: absolute;
@@ -541,8 +533,6 @@ onUnmounted(() => {
     border-right: 13px solid transparent;
     border-top: 13px solid #e5e7eb;
 }
-
-/* ── Ekor bubble — arrow ke ATAS (popover di bawah sel) ── */
 .popover-box.arr-up::after {
     content: '';
     position: absolute;
@@ -566,8 +556,6 @@ onUnmounted(() => {
     border-right: 13px solid transparent;
     border-bottom: 13px solid #e5e7eb;
 }
-
-/* Header popover — putih dengan border bawah */
 .pop-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 11px 14px 10px;
@@ -587,8 +575,6 @@ onUnmounted(() => {
     transition: background .2s; flex-shrink: 0;
 }
 .pop-close:hover { background: #e5e7eb; color: #374151; }
-
-/* Body */
 .pop-body { padding: 6px 0; max-height: 200px; overflow-y: auto; border-radius: 0 0 10px 10px; }
 .pop-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #f9fafb; }
 .pop-item:last-child { border-bottom: none; }
