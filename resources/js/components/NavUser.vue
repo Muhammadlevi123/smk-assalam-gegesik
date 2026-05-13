@@ -67,20 +67,16 @@ const handleLogout = () => {
     router.post(props.logoutUrl || '/logout');
 };
 
-// Scroll ke section kontak jika di halaman home,
-// jika di halaman lain navigasi ke /#contact
 const handleKontak = () => {
     const page = usePage();
     const currentUrl = page.url;
     if (currentUrl === '/' || currentUrl === '') {
-        // Sudah di home — scroll langsung
         const el = document.getElementById('contact-section');
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         closeAllDropdowns();
     } else {
-        // Di halaman lain — navigasi ke home dengan hash
         router.get('/#contact-section');
     }
 };
@@ -115,7 +111,6 @@ const closeAllDropdowns = () => {
     navigationItems.forEach((item: any) => { if (item.dropdown) item.isOpen = false; });
 };
 
-// HOME di depan, GALLERY & KEMITRAAN dihapus, PRESTASI menu mandiri
 const navigationItems = [
     { name: 'HOME', href: '/', current: false },
     {
@@ -232,12 +227,24 @@ onUnmounted(() => {
         </div>
 
         <!-- Main navbar -->
-        <div :class="['relative z-20 px-4 py-5 transition-all duration-500 ease-in-out lg:px-6', isScrolled ? 'border-b border-gray-200 bg-white shadow-lg' : 'bg-transparent']">
+        <div :class="[
+            'relative z-20 px-4 py-5 transition-all duration-500 ease-in-out lg:px-6',
+            isScrolled ? 'border-b border-gray-200 bg-white shadow-lg' : 'bg-transparent',
+            isMobileMenuOpen ? 'mobile-menu-open' : ''
+        ]">
             <div class="mx-auto flex w-full max-w-7xl items-center justify-between">
 
                 <!-- Mobile menu button -->
                 <div class="lg:hidden">
-                    <button :class="[isScrolled ? 'text-gray-700 hover:text-green-600' : 'text-white hover:text-green-200']" @click="toggleMobileMenu">
+                    <button
+                        :class="[
+                            'transition-colors duration-300',
+                            isMobileMenuOpen ? 'text-gray-700 hover:text-green-600'
+                                : isScrolled ? 'text-gray-700 hover:text-green-600'
+                                : 'text-white hover:text-green-200'
+                        ]"
+                        @click="toggleMobileMenu"
+                    >
                         <svg v-if="!isMobileMenuOpen" class="pointer-events-none h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
@@ -247,12 +254,15 @@ onUnmounted(() => {
                     </button>
                 </div>
 
-                <!-- Logo — klik ke home -->
+                <!-- Logo -->
                 <div class="absolute left-1/2 -translate-x-1/2 transform lg:static lg:translate-x-0 lg:transform-none">
                     <Link href="/" class="flex items-center space-x-3">
-                        <div :class="['flex items-center justify-center overflow-hidden transition-all duration-500', isScrolled ? 'h-16 w-50 lg:h-16 lg:w-80' : 'h-16 w-50 lg:h-16 lg:w-80']">
-                            <img :src="isScrolled ? '/storage/img/logo/logo-black.png' : '/storage/img/logo/logo-white.png'" alt="Logo Sekolah"
-                                :class="['object-contain transition-all duration-500', isScrolled ? 'h-16 w-50 lg:h-16 lg:w-90' : 'h-16 w-50 lg:h-16 lg:w-80']" />
+                        <div class="flex items-center justify-center overflow-hidden transition-all duration-500 h-16 w-50 lg:h-16 lg:w-80">
+                            <img
+                                :src="(isScrolled || isMobileMenuOpen) ? '/storage/img/logo/logo-black.png' : '/storage/img/logo/logo-white.png'"
+                                alt="Logo Sekolah"
+                                class="object-contain transition-all duration-500 h-16 w-50 lg:h-16 lg:w-80"
+                            />
                         </div>
                     </Link>
                 </div>
@@ -260,6 +270,7 @@ onUnmounted(() => {
                 <!-- Desktop nav -->
                 <div class="hidden cursor-pointer items-center space-x-1 lg:flex">
                     <template v-for="item in navigationItems" :key="item.name">
+
                         <div v-if="!item.dropdown">
                             <button
                                 v-if="item.isKontak"
@@ -268,32 +279,48 @@ onUnmounted(() => {
                             >
                                 {{ item.name }}
                             </button>
-                            <Link v-else :href="item.href" :class="['px-4 py-3 text-sm font-medium transition-colors duration-300', isScrolled ? 'text-gray-700 hover:text-green-600' : 'text-white drop-shadow-sm hover:text-green-200']">
+                            <Link v-else :href="item.href"
+                                :class="['px-4 py-3 text-sm font-medium transition-colors duration-300', isScrolled ? 'text-gray-700 hover:text-green-600' : 'text-white drop-shadow-sm hover:text-green-200']">
                                 {{ item.name }}
                             </Link>
                         </div>
-                        <div v-else class="dropdown-hover dropdown">
-                            <div tabindex="0" role="button" :class="['flex items-center px-4 py-3 text-sm font-medium transition-colors duration-300', isScrolled ? 'text-gray-700 hover:text-green-600' : 'text-white drop-shadow-sm hover:text-green-200']">
+
+                        <div v-else class="nav-dropdown">
+                            <div
+                                :class="['nav-dropdown-trigger flex items-center px-4 py-3 text-sm font-medium transition-colors duration-300 cursor-pointer select-none', isScrolled ? 'text-gray-700 hover:text-green-600' : 'text-white drop-shadow-sm hover:text-green-200']"
+                            >
                                 {{ item.name }}
-                                <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="ml-1 h-4 w-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                 </svg>
                             </div>
-                            <ul tabindex="0" class="dropdown-content menu z-50 mt-1 w-64 overflow-hidden border border-gray-200 bg-white p-0 shadow-xl">
-                                <li v-for="(subItem, index) in item.dropdown" :key="subItem.name"
-                                    :class="[index < item.dropdown.length - 1 ? 'border-b border-gray-200' : '']">
-                                    <Link :href="subItem.href" class="block rounded-none px-4 py-3 text-sm transition-all duration-200 hover:bg-gray-50 hover:text-green-600">
-                                        {{ subItem.name }}
-                                    </Link>
-                                </li>
-                            </ul>
+                            <div class="nav-dropdown-panel">
+                                <div class="nav-dropdown-bridge"></div>
+                                <ul class="nav-dropdown-list">
+                                    <li v-for="(subItem, index) in item.dropdown" :key="subItem.name"
+                                        :class="[index < item.dropdown.length - 1 ? 'border-b border-gray-100' : '']">
+                                        <Link :href="subItem.href"
+                                            class="block px-5 py-3.5 text-sm text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-green-600 hover:pl-6">
+                                            {{ subItem.name }}
+                                        </Link>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
+
                     </template>
                 </div>
 
                 <!-- Search + User -->
                 <div class="flex items-center space-x-2">
-                    <button @click="toggleSearch" class="search-button" :class="['flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300', isScrolled ? 'text-gray-700 hover:bg-gray-100 hover:text-green-600' : 'text-white hover:bg-white/10 hover:text-green-200']">
+                    <button @click="toggleSearch" class="search-button"
+                        :class="[
+                            'flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300',
+                            isMobileMenuOpen ? 'text-gray-700 hover:bg-gray-100 hover:text-green-600'
+                                : isScrolled ? 'text-gray-700 hover:bg-gray-100 hover:text-green-600'
+                                : 'text-white hover:bg-white/10 hover:text-green-200'
+                        ]"
+                    >
                         <svg class="pointer-events-none h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
@@ -333,28 +360,31 @@ onUnmounted(() => {
             </div>
 
             <!-- Mobile menu -->
-            <div v-if="isMobileMenuOpen" :class="['mt-4 border-t pt-4 transition-all duration-300 lg:hidden', isScrolled ? 'border-gray-200' : 'border-white/20']">
-                <div class="space-y-2">
+            <div v-if="isMobileMenuOpen" class="mobile-menu-body mt-4 border-t border-gray-200 pt-4 lg:hidden">
+                <div class="space-y-0">
                     <template v-for="item in navigationItems" :key="item.name">
                         <div v-if="!item.dropdown">
                             <button
                                 v-if="item.isKontak"
                                 @click="handleKontak"
-                                :class="['block w-full border-b border-gray-300 px-4 py-4 text-sm font-medium transition-colors duration-300 text-left bg-transparent border-none cursor-pointer', isScrolled ? 'text-gray-700 hover:bg-gray-50 hover:text-green-600' : 'text-white hover:bg-white/10 hover:text-green-200']"
+                                class="block w-full border-b border-gray-100 px-4 py-4 text-left text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-green-50 hover:text-green-700 bg-transparent cursor-pointer"
                             >
                                 {{ item.name }}
                             </button>
-                            <Link v-else :href="item.href" @click="closeAllDropdowns" :class="['block w-full border-b border-gray-300 px-4 py-4 text-sm font-medium transition-colors duration-300', isScrolled ? 'text-gray-700 hover:bg-gray-50 hover:text-green-600' : 'text-white hover:bg-white/10 hover:text-green-200']">
+                            <Link v-else :href="item.href" @click="closeAllDropdowns"
+                                class="block w-full border-b border-gray-100 px-4 py-4 text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-green-50 hover:text-green-700">
                                 {{ item.name }}
                             </Link>
                         </div>
-                        <div v-else class="collapse-arrow collapse">
+                        <div v-else class="collapse-arrow collapse border-b border-gray-100">
                             <input type="checkbox" class="peer" />
-                            <label :class="['collapse-title block w-full cursor-pointer border-b border-gray-300 px-4 py-4 text-sm font-medium transition-colors duration-300', isScrolled ? 'text-gray-700' : 'text-white']">{{ item.name }}</label>
-                            <div class="collapse-content">
-                                <div class="space-y-1 pl-4">
+                            <label class="collapse-title block w-full cursor-pointer px-4 py-4 text-sm font-medium text-gray-700">
+                                {{ item.name }}
+                            </label>
+                            <div class="collapse-content bg-gray-50">
+                                <div class="py-1">
                                     <Link v-for="subItem in item.dropdown" :key="subItem.name" :href="subItem.href" @click="closeAllDropdowns"
-                                        :class="['block w-full border-b border-gray-300 px-4 py-3 text-sm transition-colors duration-300', isScrolled ? 'text-gray-600 hover:bg-gray-50 hover:text-green-600' : 'border-white/20 text-white/80 hover:bg-white/10 hover:text-white']">
+                                        class="block w-full border-b border-gray-100 px-6 py-3 text-sm text-gray-600 transition-colors duration-200 last:border-0 hover:bg-white hover:text-green-700">
                                         {{ subItem.name }}
                                     </Link>
                                 </div>
@@ -362,8 +392,10 @@ onUnmounted(() => {
                         </div>
                     </template>
                     <template v-if="user">
-                        <div class="border-t border-gray-300 pt-2">
-                            <button @click="handleLogout" :class="['block w-full px-4 py-4 text-left text-sm font-medium text-red-500 transition-colors duration-300', isScrolled ? 'hover:bg-red-50' : 'hover:bg-white/10']">Logout</button>
+                        <div class="border-t border-gray-200 pt-1">
+                            <button @click="handleLogout" class="block w-full px-4 py-4 text-left text-sm font-medium text-red-500 transition-colors duration-200 hover:bg-red-50">
+                                Logout
+                            </button>
                         </div>
                     </template>
                 </div>
@@ -391,10 +423,56 @@ onUnmounted(() => {
 <style scoped>
 .navbar-container { position: fixed; top: 0; left: 0; right: 0; z-index: 50; }
 .search-container { position: relative; z-index: 51; }
-.dropdown:hover .dropdown-content { display: block; animation: fadeIn 0.2s ease-in-out; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 .drop-shadow-sm { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1)); }
 .backdrop-blur-sm { backdrop-filter: blur(4px); }
 #search-input { transition: all 0.2s ease; }
 #search-input:focus { box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+
+@media (max-width: 1023px) {
+    .mobile-menu-open {
+        background-color: white !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+    }
+}
+.mobile-menu-body { background-color: white; }
+
+.nav-dropdown { position: relative; }
+
+.nav-dropdown-panel {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 50;
+    min-width: 260px;
+}
+
+.nav-dropdown:hover .nav-dropdown-panel {
+    display: block;
+    animation: dropFadeIn 0.18s ease-out;
+}
+
+.nav-dropdown-bridge {
+    height: 8px;
+    background: transparent;
+    cursor: default;
+}
+
+/* ✅ HANYA INI YANG DIUBAH: border-radius: 0 (lancip/kotak) */
+.nav-dropdown-list {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+@keyframes dropFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
 </style>
