@@ -90,15 +90,23 @@ const submitContactForm = () => {
             contactForm.reset();
             contactFormErrors.value = {};
             showSuccessNotification.value = true;
-            setTimeout(() => { showSuccessNotification.value = false; }, 5000);
         },
         onError: (errors: any) => { contactFormErrors.value = errors; }
     });
 };
 
 const closeSuccessNotification = () => { showSuccessNotification.value = false; };
-const getErrorMessage = (field: string): string => contactFormErrors.value[field]?.[0] || '';
-const hasError = (field: string): boolean => !!(contactFormErrors.value[field]?.length);
+const getErrorMessage = (field: string): string => {
+    const err = contactFormErrors.value[field];
+    if (!err) return '';
+    return Array.isArray(err) ? err[0] : String(err);
+};
+const hasError = (field: string): boolean => {
+    const err = contactFormErrors.value[field];
+    if (!err) return false;
+    const msg = Array.isArray(err) ? err[0] : String(err);
+    return !!msg;
+};
 
 // ─── Hero Carousel ────────────────────────────────────────────────────────────
 const schoolInfo = ref({
@@ -756,7 +764,7 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
                         <div class="map-frame">
                             <iframe
                                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3961.999999999999!2d108.41914140000001!3d-6.6012878!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e6edd3b9d4d9ca7%3A0x5f1f07209694bcc5!2sSMK%20AS%20SALAM%20GEGESIK!5e0!3m2!1sid!2sid!4v1620000000000!5m2!1sid!2sid"
-                                width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"
+                                width="100%" height="100%" style="border:0;" :allowfullscreen="true" loading="lazy"
                                 referrerpolicy="no-referrer-when-downgrade"
                                 title="Lokasi SMK AS SALAM GEGESIK"
                             ></iframe>
@@ -835,25 +843,78 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
             </div>
         </section>
 
-        <!-- Success Modal -->
-        <Transition name="modal">
-            <div v-if="showSuccessNotification" class="modal-backdrop" @click="closeSuccessNotification">
-                <div class="modal-box" @click.stop>
-                    <div class="modal-icon-wrap">
-                        <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                        </svg>
-                    </div>
-                    <h3 class="modal-title">Pesan Berhasil Dikirim!</h3>
-                    <p class="modal-body">
-                        Terima kasih atas kritik dan saran Anda. Kami akan merespons secepatnya untuk
-                        bersama-sama meningkatkan mutu pendidikan SMK Assalam Gegesik.
-                    </p>
-                    <button @click="closeSuccessNotification" class="modal-close-btn">Tutup</button>
-                </div>
-            </div>
-        </Transition>
+        <!-- Ganti bagian <Teleport> di template Vue kalian dengan ini -->
 
+<Teleport to="body">
+    <Transition name="modal">
+        <div
+            v-if="showSuccessNotification"
+            @click="closeSuccessNotification"
+            style="
+                position: fixed !important;
+                inset: 0 !important;
+                background: rgba(0,0,0,0.55) !important;
+                backdrop-filter: blur(4px) !important;
+                -webkit-backdrop-filter: blur(4px) !important;
+                z-index: 99999 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                padding: 24px !important;
+            "
+        >
+            <div
+                @click.stop
+                style="
+                    background: #ffffff !important;
+                    border-radius: 0 !important;
+                    padding: 44px 36px !important;
+                    max-width: 420px !important;
+                    width: 100% !important;
+                    text-align: center !important;
+                    box-shadow: 0 24px 60px rgba(0,0,0,0.3) !important;
+                    position: relative !important;
+                    z-index: 100000 !important;
+                "
+            >
+
+                <!-- Judul -->
+                <h3 style="
+                    font-family: 'Fraunces', Georgia, serif;
+                    font-size: 21px;
+                    font-weight: 700;
+                    color: #111827;
+                    margin: 0 0 10px;
+                ">Pesan Berhasil Dikirim!</h3>
+
+                <!-- Body -->
+                <p style="
+                    font-size: 14px;
+                    line-height: 1.75;
+                    color: #6b7280;
+                    margin: 0 0 24px;
+                ">
+                    Terima kasih atas kritik dan saran Anda. Kami akan terus memperbaiki diri demi kemajuan SMK Assalam Gegesik.
+                </p>
+
+                <!-- Tombol tutup -->
+                <button
+                    @click="closeSuccessNotification"
+                    style="
+                        padding: 11px 28px;
+                        background: #16a34a;
+                        color: #ffffff;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 14px;
+                        font-weight: 700;
+                        cursor: pointer;
+                    "
+                >Tutup</button>
+            </div>
+        </div>
+    </Transition>
+</Teleport>
         <FooterUser />
     </div>
 </template>
@@ -1656,44 +1717,6 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
 }
 .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-loading, .btn-send-label { display: flex; align-items: center; gap: 8px; }
-
-/* ════════════════════════════════════════════
-   MODAL
-════════════════════════════════════════════ */
-.modal-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
-    z-index: 100; display: flex; align-items: center;
-    justify-content: center; padding: 24px;
-}
-.modal-box {
-    background: white; border-radius: var(--radius-lg);
-    padding: 44px 36px; max-width: 400px; width: 100%;
-    text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-}
-.modal-icon-wrap {
-    display: inline-flex; padding: 18px;
-    background: var(--green-100); border-radius: 50%;
-    color: var(--green-700); margin-bottom: 18px;
-}
-.modal-title {
-    font-family: var(--font-display); font-size: 21px;
-    font-weight: 700; color: var(--gray-900); margin: 0 0 10px;
-}
-.modal-body { font-size: 14px; line-height: 1.75; color: var(--gray-500); margin: 0 0 24px; }
-.modal-close-btn {
-    padding: 11px 28px; background: var(--green-600); color: white;
-    border: none; border-radius: var(--radius-sm);
-    font-family: var(--font-body); font-size: 14px; font-weight: 700;
-    cursor: pointer; transition: var(--transition);
-}
-.modal-close-btn:hover { background: var(--green-700); }
-
-/* ════════════════════════════════════════════
-   TRANSITIONS & ANIMATIONS
-════════════════════════════════════════════ */
-.modal-enter-active, .modal-leave-active { transition: opacity 0.25s ease; }
-.modal-enter-from, .modal-leave-to { opacity: 0; }
 
 @keyframes heroSlideLeft {
     from { opacity: 0; transform: translateX(-60px); filter: blur(6px); }

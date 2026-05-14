@@ -167,3 +167,88 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL GLOBAL — harus di sini karena pakai <Teleport to="body">
+   CSS scoped Vue tidak bisa menjangkau elemen yang di-teleport,
+   sehingga style modal wajib didefinisikan secara global.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.modal-box {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 44px 36px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 10000;
+}
+
+.modal-icon-wrap {
+    display: inline-flex;
+    padding: 18px;
+    background: #dcfce7;
+    border-radius: 50%;
+    color: #15803d;
+    margin-bottom: 18px;
+}
+
+.modal-title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 21px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 10px;
+}
+
+.modal-body {
+    font-size: 14px;
+    line-height: 1.75;
+    color: #6b7280;
+    margin: 0 0 24px;
+}
+
+.modal-close-btn {
+    padding: 11px 28px;
+    background: #16a34a;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform  0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-close-btn:hover {
+    background: #15803d;
+    transform: translateY(-1px);
+}
+
+/* Animasi masuk / keluar modal */
+.modal-enter-active,
+.modal-leave-active {
+    transition: opacity 0.25s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+    opacity: 0;
+}
