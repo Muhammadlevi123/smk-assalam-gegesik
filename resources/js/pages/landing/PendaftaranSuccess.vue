@@ -10,7 +10,7 @@ import { Head } from '@inertiajs/vue3';
         <header class="topbar">
             <div class="topbar-left">
                 <div class="topbar-logo-wrap">
-                    <img src="/storage/img/logo/logo.png" alt="Logo" class="topbar-logo" />
+                    <img src="/storage/img/logo/logo_w.png" alt="Logo" class="topbar-logo" />
                 </div>
                 <div class="topbar-school">
                     <div class="topbar-name">SMK ASSALAM GEGESIK</div>
