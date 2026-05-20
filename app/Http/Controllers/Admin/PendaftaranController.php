@@ -137,7 +137,7 @@ class PendaftaranController extends Controller
 
         $pendaftaran->update($validated);
 
-        return redirect()->route('admin.pendaftaran.index', $pendaftaran->id)
+        return redirect()->route('admin.pendaftaran.index')
                          ->with('success', 'updated');
     }
 

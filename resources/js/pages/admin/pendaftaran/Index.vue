@@ -9,6 +9,7 @@ const showExportModal        = ref(false);
 const exportType             = ref<'excel' | 'pdf'>('excel');
 const exportForm             = ref({ bulan: '', tahun_daftar: '', jurusan: '', tahun_lulus: '' });
 const showSuccessDeletePopup = ref(false);
+const showSuccessUpdatePopup = ref(false);
 const selectedItem           = ref<Pendaftaran | null>(null);
 let countdown: number | null = null;
 
@@ -117,9 +118,20 @@ const confirmDelete = () => {
     });
 };
 
-const clearCountdown      = () => { if (countdown) { clearTimeout(countdown); countdown = null; } };
-const startAutoClose      = (fn: () => void) => { countdown = setTimeout(fn, 1500); };
+const clearCountdown          = () => { if (countdown) { clearTimeout(countdown); countdown = null; } };
+const startAutoClose          = (fn: () => void) => { countdown = setTimeout(fn, 1500); };
 const closeSuccessDeletePopup = () => { showSuccessDeletePopup.value = false; clearCountdown(); };
+const closeSuccessUpdatePopup = () => { showSuccessUpdatePopup.value = false; clearCountdown(); };
+
+watch(
+    () => (page.props as any).flash,
+    (flash) => {
+        if (!flash?.success) return;
+        if (flash.success === 'updated') { showSuccessUpdatePopup.value = true; startAutoClose(closeSuccessUpdatePopup); }
+    },
+    { immediate: true, deep: true }
+);
+
 onUnmounted(() => clearCountdown());
 
 const countLakiLaki  = computed(() => props.pendaftaran.data.filter(p => p.jenis_kelamin === 'Laki-laki').length);
@@ -500,7 +512,7 @@ const buildExportUrl = (type: 'excel' | 'pdf') => {
             </div>
         </div>
 
-        <!-- Success Popup -->
+        <!-- Success Delete Popup -->
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
             <div v-if="showSuccessDeletePopup" class="fixed inset-0 z-50 flex items-center justify-center">
                 <div class="fixed inset-0 bg-black/20 backdrop-blur-sm" @click="closeSuccessDeletePopup"></div>
@@ -517,6 +529,29 @@ const buildExportUrl = (type: 'excel' | 'pdf') => {
                         <div class="mt-4 text-center">
                             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Data Berhasil Dihapus!</h3>
                             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Data pendaftaran telah dihapus dari sistem.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+
+        <!-- Success Update Popup -->
+        <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-200" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
+            <div v-if="showSuccessUpdatePopup" class="fixed inset-0 z-50 flex items-center justify-center">
+                <div class="fixed inset-0 bg-black/20 backdrop-blur-sm" @click="closeSuccessUpdatePopup"></div>
+                <div class="relative mx-4 pointer-events-auto">
+                    <div class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 max-w-sm">
+                        <button @click="closeSuccessUpdatePopup" class="absolute right-4 top-4 rounded-lg p-1 text-gray-400 hover:bg-gray-100">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                        <div class="flex items-center justify-center">
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+                                <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                        </div>
+                        <div class="mt-4 text-center">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Data Berhasil Diperbarui!</h3>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Perubahan data pendaftaran telah berhasil disimpan.</p>
                         </div>
                     </div>
                 </div>

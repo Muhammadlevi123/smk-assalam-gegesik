@@ -446,7 +446,7 @@ const e = (field: string) => (form.errors as any)[field] || '';
                             </svg>
                             {{ form.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}
                         </button>
-                        <Link :href="route('admin.pendaftaran.show', pendaftaran.id)"
+                        <Link :href="route('admin.pendaftaran.index')"
                             class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-8 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                             <span v-html="ArrowLeftIcon()"></span>
                             Batal
