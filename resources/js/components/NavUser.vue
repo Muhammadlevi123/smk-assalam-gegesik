@@ -145,7 +145,6 @@ const navigationItems = [
         ],
     },
     { name: 'PRESTASI', href: '/prestasi', current: false },
-    { name: 'KONTAK', href: '#contact-section', isKontak: true, current: false },
 ];
 
 const handleKeydown = (event: KeyboardEvent) => {
@@ -170,7 +169,7 @@ onUnmounted(() => {
 
         <!-- Top header bar -->
         <div v-show="!isScrolled" class="bg-gray-800 px-4 py-2 text-white transition-all duration-300 ease-in-out lg:px-6">
-            <div class="mx-auto flex w-full max-w-7xl items-center justify-between">
+            <div class="mx-auto flex w-full max-w-7xl items-center justify-between lg:max-w-screen-2xl lg:px-12">
                 <div class="flex items-center space-x-6 text-sm">
                     <div class="hidden lg:flex lg:items-center lg:space-x-6">
                         <div class="flex items-center space-x-2">
@@ -232,7 +231,7 @@ onUnmounted(() => {
             isScrolled ? 'border-b border-gray-200 bg-white shadow-lg' : 'bg-transparent',
             isMobileMenuOpen ? 'mobile-menu-open' : ''
         ]">
-            <div class="mx-auto flex w-full max-w-7xl items-center justify-between">
+            <div class="mx-auto flex w-full max-w-7xl items-center justify-between lg:max-w-screen-2xl lg:px-12">
 
                 <!-- Mobile menu button -->
                 <div class="lg:hidden">
@@ -268,18 +267,11 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Desktop nav -->
-                <div class="hidden cursor-pointer items-center space-x-1 lg:flex">
+                <div class="hidden cursor-pointer items-center space-x-5 lg:flex">
                     <template v-for="item in navigationItems" :key="item.name">
 
                         <div v-if="!item.dropdown">
-                            <button
-                                v-if="item.isKontak"
-                                @click="handleKontak"
-                                :class="['px-4 py-3 text-sm font-medium transition-colors duration-300 cursor-pointer bg-transparent border-none', isScrolled ? 'text-gray-700 hover:text-green-600' : 'text-white drop-shadow-sm hover:text-green-200']"
-                            >
-                                {{ item.name }}
-                            </button>
-                            <Link v-else :href="item.href"
+                            <Link :href="item.href"
                                 :class="['px-4 py-3 text-sm font-medium transition-colors duration-300', isScrolled ? 'text-gray-700 hover:text-green-600' : 'text-white drop-shadow-sm hover:text-green-200']">
                                 {{ item.name }}
                             </Link>
@@ -309,6 +301,20 @@ onUnmounted(() => {
                         </div>
 
                     </template>
+
+                    <Link href="/pendaftaran"
+                        :class="[
+                            'btn-daftar ml-2 inline-flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold transition-all duration-300',
+                            isScrolled
+                                ? 'border border-green-600 text-green-600 hover:bg-green-600 hover:text-white'
+                                : 'border border-white/70 text-white hover:border-white hover:bg-white/10'
+                        ]"
+                    >
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        DAFTAR
+                    </Link>
                 </div>
 
                 <!-- Search + User -->
@@ -364,14 +370,7 @@ onUnmounted(() => {
                 <div class="space-y-0">
                     <template v-for="item in navigationItems" :key="item.name">
                         <div v-if="!item.dropdown">
-                            <button
-                                v-if="item.isKontak"
-                                @click="handleKontak"
-                                class="block w-full border-b border-gray-100 px-4 py-4 text-left text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-green-50 hover:text-green-700 bg-transparent cursor-pointer"
-                            >
-                                {{ item.name }}
-                            </button>
-                            <Link v-else :href="item.href" @click="closeAllDropdowns"
+                            <Link :href="item.href" @click="closeAllDropdowns"
                                 class="block w-full border-b border-gray-100 px-4 py-4 text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-green-50 hover:text-green-700">
                                 {{ item.name }}
                             </Link>
@@ -391,6 +390,18 @@ onUnmounted(() => {
                             </div>
                         </div>
                     </template>
+
+                    <!-- Tombol Daftar di mobile menu -->
+                    <div class="border-b border-gray-100">
+                        <Link href="/pendaftaran" @click="closeAllDropdowns"
+                            class="flex items-center gap-2 w-full px-4 py-4 text-sm font-bold text-green-700 transition-colors duration-200 hover:bg-green-50">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            DAFTAR SEKARANG
+                        </Link>
+                    </div>
+
                     <template v-if="user">
                         <div class="border-t border-gray-200 pt-1">
                             <button @click="handleLogout" class="block w-full px-4 py-4 text-left text-sm font-medium text-red-500 transition-colors duration-200 hover:bg-red-50">
@@ -404,7 +415,7 @@ onUnmounted(() => {
 
         <!-- Search Bar -->
         <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0 transform -translate-y-2 scale-95" enter-to-class="opacity-100 transform translate-y-0 scale-100" leave-active-class="transition-all duration-150 ease-in" leave-from-class="opacity-100 transform translate-y-0 scale-100" leave-to-class="opacity-0 transform -translate-y-2 scale-95">
-            <div v-if="isSearchOpen" :class="['search-container absolute top-full z-50 mt-2', 'right-0 lg:right-30']" style="max-width: calc(100vw - 2rem)" @click="preventSearchClose">
+            <div v-if="isSearchOpen" :class="['search-container absolute top-full z-50 mt-2', 'right-0 lg:right-13']" style="max-width: calc(100vw - 2rem)" @click="preventSearchClose">
                 <form @submit.prevent="handleSearch" class="flex items-center justify-end">
                     <div class="relative">
                         <input id="search-input" v-model="searchQuery" type="text" placeholder="Search..." class="w-64 max-w-[calc(100vw-4rem)] rounded-full border border-gray-200 bg-white px-4 py-2 pr-10 text-sm text-gray-700 placeholder-gray-400 shadow-lg transition-all duration-200 focus:border-green-400 focus:ring-2 focus:ring-green-400 focus:outline-none" @click="preventSearchClose" />
@@ -459,7 +470,6 @@ onUnmounted(() => {
     cursor: default;
 }
 
-/* ✅ HANYA INI YANG DIUBAH: border-radius: 0 (lancip/kotak) */
 .nav-dropdown-list {
     background: white;
     border: 1px solid #e5e7eb;
@@ -469,6 +479,11 @@ onUnmounted(() => {
     list-style: none;
     margin: 0;
     padding: 0;
+}
+
+.btn-daftar {
+    letter-spacing: 0.05em;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @keyframes dropFadeIn {

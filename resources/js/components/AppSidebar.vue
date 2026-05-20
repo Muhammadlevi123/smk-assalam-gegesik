@@ -26,6 +26,7 @@ import {
     FileText,
     MessageSquare,
     BookOpen,
+    ClipboardList,
 } from 'lucide-vue-next'
 import NavAdmin from '@/components/NavAdmin.vue'
 import { route } from 'ziggy-js'
@@ -39,8 +40,16 @@ const dashboardItems: NavItem[] = [
     },
 ]
 
-// ── 2. Akademik ───────────────────────────────────────────────────
-// Tahun ajaran, kalender, mata pelajaran, dan kelas — fondasi sistem akademik
+// ── 2. Penerimaan Siswa ───────────────────────────────────────────
+const penerimaanItems: NavItem[] = [
+    {
+        title: 'Data Pendaftaran',
+        href: route('admin.pendaftaran.index'),
+        icon: ClipboardList,
+    },
+]
+
+// ── 3. Akademik ───────────────────────────────────────────────────
 const akademikItems: NavItem[] = [
     {
         title: 'Tahun Ajaran',
@@ -64,8 +73,7 @@ const akademikItems: NavItem[] = [
     },
 ]
 
-// ── 3. Warga Sekolah ──────────────────────────────────────────────
-// Semua orang yang terlibat di sekolah
+// ── 4. Warga Sekolah ──────────────────────────────────────────────
 const wargaSekolahItems: NavItem[] = [
     {
         title: 'Siswa',
@@ -89,8 +97,7 @@ const wargaSekolahItems: NavItem[] = [
     },
 ]
 
-// ── 4. Kegiatan & Prestasi ────────────────────────────────────────
-// Aktivitas dan pencapaian sekolah
+// ── 5. Kegiatan & Prestasi ────────────────────────────────────────
 const kegiatanItems: NavItem[] = [
     {
         title: 'Organisasi',
@@ -104,8 +111,7 @@ const kegiatanItems: NavItem[] = [
     },
 ]
 
-// ── 5. Publikasi ──────────────────────────────────────────────────
-// Konten yang dipublikasikan ke publik
+// ── 6. Publikasi ──────────────────────────────────────────────────
 const publikasiItems: NavItem[] = [
     {
         title: 'Berita',
@@ -119,7 +125,7 @@ const publikasiItems: NavItem[] = [
     },
 ]
 
-// ── 6. Pesan Masuk ────────────────────────────────────────────────
+// ── 7. Saran & Kritik ─────────────────────────────────────────────
 const pesanItems: NavItem[] = [
     {
         title: 'Pesan Masuk',
@@ -154,6 +160,7 @@ const pesanItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain :items="dashboardItems" />
+            <NavMain :items="penerimaanItems"    title="Penerimaan Siswa" />
             <NavMain :items="akademikItems"      title="Akademik" />
             <NavMain :items="wargaSekolahItems"  title="Warga Sekolah" />
             <NavMain :items="kegiatanItems"      title="Kegiatan & Prestasi" />

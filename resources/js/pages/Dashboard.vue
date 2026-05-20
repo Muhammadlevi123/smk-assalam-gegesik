@@ -537,7 +537,7 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
                     <!-- Featured — kiri, full height -->
                     <Link
                         v-if="berita[0]"
-                        :href="`/news/${berita[0].slug}`"
+                        :href="`/informasi/berita/${berita[0].slug}`"
                         class="news-featured reveal-left"
                     >
                         <div class="news-featured-img-wrap">
@@ -563,7 +563,7 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
                         <Link
                             v-for="(item, idx) in berita.slice(1, 5)"
                             :key="item.id"
-                            :href="`/news/${item.slug}`"
+                            :href="`/informasi/berita/${item.slug}`"
                             class="news-side-item"
                             :style="{ '--side-i': idx }"
                         >
@@ -601,7 +601,6 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
                 </div>
             </div>
         </section>
-
         <!-- ════════════════════════════════════════════
              EKSTRAKURIKULER — Pakai logo dari DB
         ═════════════════════════════════════════════ -->
@@ -622,7 +621,6 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
                         :style="{ '--ekskur-color': getEkskurColor(index), '--stagger-i': index }"
                     >
                         <div class="ekskur-top">
-                            <!-- Logo dari DB: jika ada tampilkan gambar, jika tidak pakai initial -->
                             <div class="ekskur-logo-wrap">
                                 <img
                                     v-if="item.logo"
@@ -640,14 +638,6 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
                                 {{ item.deskripsi || 'Deskripsi kegiatan ekstrakurikuler ini akan segera tersedia.' }}
                             </p>
                         </div>
-                        <div class="ekskur-footer">
-                            <Link href="/ekstrakurikuler" class="ekskur-link">
-                                Selengkapnya
-                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
-                            </Link>
-                        </div>
                     </div>
                 </div>
 
@@ -661,15 +651,6 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
                     <h3>Belum Ada Ekstrakurikuler</h3>
                     <p>Data akan ditampilkan segera.</p>
                 </div>
-
-                <!-- <div v-if="ekstrakurikuler && ekstrakurikuler.length > 0" class="section-cta">
-                    <Link href="/ekstrakurikuler" class="btn-outline">
-                        Lihat Semua Ekstrakurikuler
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                        </svg>
-                    </Link>
-                </div> -->
             </div>
         </section>
 

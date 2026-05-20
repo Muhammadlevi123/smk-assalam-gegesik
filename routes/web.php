@@ -5,6 +5,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 use App\Http\Controllers\LandingPageController;
+use App\Http\Controllers\PendaftaranController;
+use App\Http\Controllers\SearchController;
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AlumniController;
@@ -21,6 +23,7 @@ use App\Http\Controllers\Admin\TenagaKependidikanController;
 use App\Http\Controllers\Admin\PrestasiController;
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\PendaftaranController as AdminPendaftaranController;
 
 
 Route::get('/', [LandingPageController::class, 'index'])->name('home');
@@ -54,6 +57,12 @@ Route::prefix('informasi')->name('informasi.')->group(function () {
 
 // ─── Prestasi — menu mandiri ──────────────────────
 Route::get('/prestasi', [LandingPageController::class, 'prestasi'])->name('prestasi');
+Route::get('/search', [SearchController::class, 'index'])->name('search');
+
+// ─── Pendaftaran Online (Publik) ──────────────────
+Route::get('/pendaftaran', [App\Http\Controllers\PendaftaranController::class, 'create'])->name('pendaftaran.create');
+Route::post('/pendaftaran', [App\Http\Controllers\PendaftaranController::class, 'store'])->name('pendaftaran.store');
+Route::get('/pendaftaran/sukses', [App\Http\Controllers\PendaftaranController::class, 'success'])->name('pendaftaran.success');
 
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(function () {
 
@@ -179,6 +188,17 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/contact-messages', [ContactMessageController::class, 'index'])->name('admin.contact-messages.index');
     Route::get('/contact-messages/{contactMessage}', [ContactMessageController::class, 'show'])->name('admin.contact-messages.show');
     Route::delete('/contact-messages/{contactMessage}', [ContactMessageController::class, 'destroy'])->name('admin.contact-messages.destroy');
+
+    // Pendaftaran Routes
+    Route::get('/pendaftaran', [AdminPendaftaranController::class, 'index'])->name('admin.pendaftaran.index');
+    Route::get('/pendaftaran/{pendaftaran}', [AdminPendaftaranController::class, 'show'])->name('admin.pendaftaran.show');
+    Route::get('/pendaftaran/{pendaftaran}/edit', [AdminPendaftaranController::class, 'edit'])->name('admin.pendaftaran.edit');
+    Route::put('/pendaftaran/{pendaftaran}', [AdminPendaftaranController::class, 'update'])->name('admin.pendaftaran.update');
+    Route::delete('/pendaftaran/{pendaftaran}', [AdminPendaftaranController::class, 'destroy'])->name('admin.pendaftaran.destroy');
+
+    // Export
+    Route::get('/pendaftaran-export/excel', [App\Http\Controllers\Admin\PendaftaranController::class, 'exportExcel'])->name('admin.pendaftaran.export.excel');
+    Route::get('/pendaftaran-export/pdf', [App\Http\Controllers\Admin\PendaftaranController::class, 'exportPdf'])->name('admin.pendaftaran.export.pdf');
 });
 
 require __DIR__.'/settings.php';

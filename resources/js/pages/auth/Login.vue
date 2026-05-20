@@ -36,12 +36,8 @@ const submit = () => {
              KIRI — Branding & Visual
         ═══════════════════════════════════ -->
         <div class="login-left">
-            <!-- Background foto sekolah -->
             <div class="left-bg"></div>
-            <!-- Overlay gradasi gelap-hijau -->
             <div class="left-overlay"></div>
-
-            <!-- Decorative pattern -->
             <div class="left-pattern">
                 <svg width="100%" height="100%" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice">
                     <circle cx="350" cy="80"  r="160" fill="rgba(255,255,255,0.03)" />
@@ -49,21 +45,12 @@ const submit = () => {
                     <circle cx="200" cy="300" r="120" fill="rgba(255,255,255,0.02)" />
                 </svg>
             </div>
-
-            <!-- Konten kiri -->
             <div class="left-content">
-                <!-- Logo + nama sekolah -->
                 <div class="left-brand">
                     <a href="/" class="left-brand-link" title="Kembali ke Beranda">
-                        <img
-                            src="/storage/img/logo/logo-white.png"
-                            alt="Logo SMK Assalam Gegesik"
-                            class="left-logo"
-                        />
+                        <img src="/storage/img/logo/logo-white.png" alt="Logo SMK Assalam Gegesik" class="left-logo" />
                     </a>
                 </div>
-
-                <!-- Quote / tagline -->
                 <div class="left-body">
                     <h1 class="left-title">
                         Selamat Datang<br>
@@ -73,21 +60,16 @@ const submit = () => {
                         Portal informasi dan manajemen<br>
                         SMK Assalam Gegesik
                     </p>
-
-                    <!-- Garis dekoratif -->
                     <div class="left-divider">
                         <span class="divider-line"></span>
                         <span class="divider-dot"></span>
                         <span class="divider-line"></span>
                     </div>
-
                     <p class="left-quote">
                         "Membentuk Generasi Unggul,<br>
                         Berkarakter, dan Berdaya Saing Global"
                     </p>
                 </div>
-
-                <!-- Footer kiri -->
                 <div class="left-footer">
                     <a href="/" class="footer-home-link">← Kembali ke Beranda</a>
                     <span class="dot-sep">·</span>
@@ -100,21 +82,16 @@ const submit = () => {
              KANAN — Form Login
         ═══════════════════════════════════ -->
         <div class="login-right">
-            <!-- Decorative top accent -->
             <div class="right-top-accent"></div>
-
             <div class="form-wrapper">
 
-                <!-- Header form -->
                 <div class="form-header">
-                    <!-- Mobile brand (logo kecil, tampil hanya di mobile) -->
                     <div class="mobile-brand">
                         <a href="/" class="mobile-brand-link" title="Kembali ke Beranda">
                             <img src="/storage/img/logo/logo.png" alt="Logo" class="mobile-logo" />
                             <span class="mobile-school-name">SMK Assalam Gegesik</span>
                         </a>
                     </div>
-
                     <div class="form-title-group">
                         <span class="form-eyebrow">Portal Sekolah</span>
                         <h2 class="form-title">Masuk ke Akun</h2>
@@ -122,7 +99,6 @@ const submit = () => {
                     </div>
                 </div>
 
-                <!-- Status message -->
                 <div v-if="status" class="status-banner">
                     <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -130,7 +106,6 @@ const submit = () => {
                     {{ status }}
                 </div>
 
-                <!-- Form -->
                 <form @submit.prevent="submit" class="login-form">
 
                     <!-- Email -->
@@ -166,13 +141,6 @@ const submit = () => {
                                 </svg>
                                 Password
                             </label>
-                            <!-- <TextLink
-                                v-if="canResetPassword"
-                                :href="request()"
-                                class="forgot-link"
-                            >
-                                Lupa password?
-                            </TextLink> -->
                         </div>
                         <div class="input-wrap" :class="{ 'has-error': form.errors.password }">
                             <input
@@ -189,40 +157,14 @@ const submit = () => {
                         <InputError :message="form.errors.password" class="field-error" />
                     </div>
 
-                    <!-- Remember me -->
-                    <!-- <div class="remember-row">
-                        <label class="remember-label">
-                            <div class="custom-checkbox">
-                                <input
-                                    type="checkbox"
-                                    id="remember"
-                                    name="remember"
-                                    v-model="form.remember"
-                                    class="checkbox-input"
-                                />
-                                <div class="checkbox-box">
-                                    <svg width="10" height="10" fill="none" stroke="white" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                </div>
-                            </div>
-                            <span>Ingat saya</span> -->
-                        <!-- </label>
-                    </div> -->
-
                     <!-- Submit -->
                     <button
                         type="submit"
                         class="btn-login"
                         :disabled="form.processing"
-                        :class="{ loading: form.processing }"
                     >
                         <span v-if="form.processing" class="btn-spinner">
-                            <svg class="spin-icon" width="18" height="18" fill="none" viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
-                                <path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="3" stroke-linecap="round"/>
-                            </svg>
-                            Memproses...
+                            <span class="spinner-ring"></span>
                         </span>
                         <span v-else class="btn-label">
                             Masuk
@@ -233,15 +175,6 @@ const submit = () => {
                     </button>
 
                 </form>
-
-                <!-- Footer form -->
-                <!-- <div class="form-footer">
-                    <p class="form-footer-text">
-                        Belum punya akun?
-                        <TextLink :href="register()" class="signup-link">Daftar sekarang</TextLink>
-                    </p>
-                </div> -->
-
             </div>
         </div>
 
@@ -320,31 +253,22 @@ const submit = () => {
     padding: 44px 48px;
 }
 
-.left-brand {
-    margin-bottom: auto;
-}
+.left-brand { margin-bottom: auto; }
 
 .left-brand-link {
     display: inline-block;
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
-.left-brand-link:hover {
-    opacity: 0.85;
-    transform: translateY(-1px);
-}
+.left-brand-link:hover { opacity: 0.85; transform: translateY(-1px); }
 
 .left-logo {
-    height: 64px;
-    width: auto;
-    object-fit: contain;
+    height: 64px; width: auto; object-fit: contain;
     object-position: left;
     filter: drop-shadow(0 2px 12px rgba(0,0,0,0.3));
     display: block;
 }
 
-.left-body {
-    padding: 48px 0 40px;
-}
+.left-body { padding: 48px 0 40px; }
 
 .left-title {
     font-family: var(--font-display);
@@ -355,11 +279,7 @@ const submit = () => {
     margin-bottom: 16px;
     text-shadow: 0 2px 20px rgba(0,0,0,0.3);
 }
-
-.left-title em {
-    color: #86efac;
-    font-style: italic;
-}
+.left-title em { color: #86efac; font-style: italic; }
 
 .left-sub {
     font-size: 15px;
@@ -372,14 +292,8 @@ const submit = () => {
     display: flex; align-items: center; gap: 12px;
     margin-bottom: 28px;
 }
-.divider-line {
-    height: 1px; width: 56px;
-    background: rgba(255,255,255,0.25);
-}
-.divider-dot {
-    width: 5px; height: 5px;
-    background: #86efac; border-radius: 50%;
-}
+.divider-line { height: 1px; width: 56px; background: rgba(255,255,255,0.25); }
+.divider-dot  { width: 5px; height: 5px; background: #86efac; border-radius: 50%; }
 
 .left-quote {
     font-family: var(--font-display);
@@ -399,14 +313,12 @@ const submit = () => {
 .footer-home-link {
     color: rgba(255,255,255,0.5);
     text-decoration: none;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 12px; font-weight: 600;
     letter-spacing: 0.03em;
     transition: color 0.2s ease;
 }
 .footer-home-link:hover { color: rgba(255,255,255,0.85); }
 
-/* Mobile brand link */
 .mobile-brand-link {
     display: flex; align-items: center; gap: 12px;
     text-decoration: none;
@@ -418,12 +330,8 @@ const submit = () => {
    KANAN — Form
 ══════════════════════════════════════════ */
 .login-right {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    background: var(--white);
-    overflow-y: auto;
+    flex: 1; display: flex; flex-direction: column;
+    position: relative; background: var(--white); overflow-y: auto;
 }
 
 .right-top-accent {
@@ -441,7 +349,6 @@ const submit = () => {
     width: 100%;
 }
 
-/* Mobile brand (logo kecil, tampil hanya di mobile) */
 .mobile-brand {
     display: none;
     align-items: center; gap: 12px;
@@ -455,7 +362,6 @@ const submit = () => {
     color: var(--green-800); letter-spacing: 0.02em;
 }
 
-/* Form header */
 .form-header { margin-bottom: 36px; }
 .form-eyebrow {
     display: inline-block;
@@ -478,21 +384,16 @@ const submit = () => {
     line-height: 1.6;
 }
 
-/* Status banner */
 .status-banner {
     display: flex; align-items: center; gap: 8px;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
+    background: #f0fdf4; border: 1px solid #bbf7d0;
     color: var(--green-700);
     padding: 12px 16px; border-radius: var(--radius);
     font-size: 13px; font-weight: 500;
     margin-bottom: 24px;
 }
 
-/* Form */
-.login-form {
-    display: flex; flex-direction: column; gap: 22px;
-}
+.login-form { display: flex; flex-direction: column; gap: 22px; }
 
 .field-group { display: flex; flex-direction: column; gap: 7px; }
 
@@ -506,17 +407,7 @@ const submit = () => {
     display: flex; align-items: center; justify-content: space-between;
 }
 
-.forgot-link {
-    font-size: 12px; font-weight: 600;
-    color: var(--green-600) !important;
-    text-decoration: none !important;
-    transition: color var(--transition);
-}
-.forgot-link:hover { color: var(--green-800) !important; }
-
-.input-wrap {
-    position: relative;
-}
+.input-wrap { position: relative; }
 
 .field-input {
     width: 100%; height: 48px;
@@ -545,36 +436,9 @@ const submit = () => {
 
 .field-error { font-size: 12px; color: #dc2626; margin-top: 2px; }
 
-/* Remember me */
-.remember-row { margin-top: -4px; }
-.remember-label {
-    display: flex; align-items: center; gap: 10px;
-    cursor: pointer;
-    font-size: 13px; color: var(--gray-600); font-weight: 500;
-    user-select: none;
-}
-
-.custom-checkbox { position: relative; }
-.checkbox-input {
-    position: absolute; opacity: 0; width: 0; height: 0;
-}
-.checkbox-box {
-    width: 18px; height: 18px;
-    border: 1.5px solid var(--gray-300);
-    border-radius: 4px;
-    background: #fafafa;
-    display: flex; align-items: center; justify-content: center;
-    transition: var(--transition);
-    flex-shrink: 0;
-}
-.checkbox-box svg { opacity: 0; transition: opacity var(--transition); }
-.checkbox-input:checked ~ .checkbox-box {
-    background: var(--green-600);
-    border-color: var(--green-600);
-}
-.checkbox-input:checked ~ .checkbox-box svg { opacity: 1; }
-
-/* Login button */
+/* ══════════════════════════════════════════
+   ✅ LOGIN BUTTON — spinner fix
+══════════════════════════════════════════ */
 .btn-login {
     height: 50px; width: 100%;
     background: var(--green-700);
@@ -587,64 +451,64 @@ const submit = () => {
     display: flex; align-items: center; justify-content: center;
     margin-top: 4px;
     letter-spacing: 0.02em;
+    /* ✅ Pastikan tombol tidak collapse saat loading */
+    min-height: 50px;
 }
 .btn-login:hover:not(:disabled) {
     background: var(--green-800);
     transform: translateY(-1px);
     box-shadow: 0 8px 24px rgba(22, 101, 52, 0.35);
 }
-.btn-login:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: none;
-}
+.btn-login:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
 .btn-login:disabled { opacity: 0.7; cursor: not-allowed; }
+
+/* ✅ Reset DaisyUI/Tailwind override — pastikan tombol full width tidak collapse */
+.btn-login.loading {
+    pointer-events: none;
+    width: 100% !important;
+    height: 50px !important;
+}
+
 .btn-label { display: flex; align-items: center; gap: 8px; }
-.btn-spinner { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 
-.spin-icon { animation: spin 0.8s linear infinite; }
+/* ✅ FIX: spinner kecil proporsional, tidak mendominasi tombol */
+.btn-spinner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Ring spinner — bukan SVG besar, tapi border CSS yang tipis dan kecil */
+.spinner-ring {
+    width: 20px;
+    height: 20px;
+    border: 2.5px solid rgba(255, 255, 255, 0.35);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* Form footer */
-.form-footer {
-    margin-top: 28px;
-    padding-top: 24px;
-    border-top: 1px solid var(--gray-100);
-    text-align: center;
-}
-.form-footer-text { font-size: 13px; color: var(--gray-500); }
-.signup-link {
-    font-weight: 700;
-    color: var(--green-700) !important;
-    text-decoration: none !important;
-    transition: color var(--transition);
-}
-.signup-link:hover { color: var(--green-800) !important; }
 
 /* ══════════════════════════════════════════
    RESPONSIVE — Mobile
 ══════════════════════════════════════════ */
 @media (max-width: 768px) {
     .login-root { flex-direction: column; }
-
     .login-left { display: none; }
-
     .login-right {
         flex: 1; min-height: 100vh;
         background: linear-gradient(160deg, #f8fafb 0%, #f0fdf4 100%);
     }
-
     .right-top-accent {
         height: 6px;
         background: linear-gradient(90deg, var(--green-800), var(--green-500), var(--green-800));
     }
-
-    .form-wrapper {
-        padding: 36px 24px 48px;
-        max-width: 100%;
-    }
-
+    .form-wrapper { padding: 36px 24px 48px; max-width: 100%; }
     .mobile-brand { display: flex; }
-
     .form-title { font-size: 28px; }
 }
 
@@ -656,15 +520,9 @@ const submit = () => {
 }
 
 /* Page load animation */
-.login-left { animation: slideInLeft 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.login-left   { animation: slideInLeft  0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .form-wrapper { animation: slideInRight 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both; }
 
-@keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(-32px); }
-    to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes slideInRight {
-    from { opacity: 0; transform: translateX(24px); }
-    to   { opacity: 1; transform: translateX(0); }
-}
+@keyframes slideInLeft  { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(24px);  } to { opacity: 1; transform: translateX(0); } }
 </style>
