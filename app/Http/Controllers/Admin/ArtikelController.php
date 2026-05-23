@@ -14,6 +14,9 @@ use Carbon\Carbon;
 
 class ArtikelController extends Controller
 {
+    // ──────────────────────────────────────────────────────────────
+    // INDEX
+    // ──────────────────────────────────────────────────────────────
     public function index(Request $request): Response
     {
         $query = Artikel::query();
@@ -21,9 +24,9 @@ class ArtikelController extends Controller
         if ($request->filled('search')) {
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
-                $q->where('judul', 'LIKE', "%{$search}%")
-                  ->orWhere('isi', 'LIKE', "%{$search}%")
-                  ->orWhere('kategori', 'LIKE', "%{$search}%")
+                $q->where('judul',    'LIKE', "%{$search}%")
+                  ->orWhere('isi',     'LIKE', "%{$search}%")
+                  ->orWhere('kategori','LIKE', "%{$search}%")
                   ->orWhere('penulis', 'LIKE', "%{$search}%");
             });
         }
@@ -86,6 +89,9 @@ class ArtikelController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // CREATE
+    // ──────────────────────────────────────────────────────────────
     public function create(): Response
     {
         $kategoriList = Artikel::select('kategori')
@@ -108,6 +114,9 @@ class ArtikelController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // STORE
+    // ──────────────────────────────────────────────────────────────
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -116,11 +125,13 @@ class ArtikelController extends Controller
             'kategori'          => 'required|string|max:255',
             'penulis'           => 'required|string|max:255',
             'foto'              => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'images'            => 'nullable|array|max:10',
+            'images.*'          => 'image|mimes:jpeg,png,jpg|max:2048',
             'status'            => 'required|in:draft,publish',
             'tanggal_publikasi' => 'nullable|date',
         ]);
 
-        // Generate slug unik
+        // ── Slug unik ─────────────────────────────────────────────
         $slug         = Str::slug($validated['judul']);
         $originalSlug = $slug;
         $counter      = 1;
@@ -129,23 +140,23 @@ class ArtikelController extends Controller
         }
         $validated['slug'] = $slug;
 
-        // Upload foto
+        // ── Upload foto utama ─────────────────────────────────────
         $fotoPath = null;
         if ($request->hasFile('foto')) {
             $fotoPath = $request->file('foto')->store('img/artikel', 'public');
         }
         $validated['foto'] = $fotoPath;
 
-        /*
-         * Logika tanggal_publikasi:
-         * - Status PUBLISH + ada tanggal  → simpan tanggal (bisa masa depan = terjadwal)
-         * - Status PUBLISH + tanpa tanggal → set ke sekarang (publish langsung)
-         * - Status DRAFT + ada tanggal    → simpan tanggal untuk penjadwalan, STATUS TETAP DRAFT
-         * - Status DRAFT + tanpa tanggal  → tanpa tanggal, draft biasa
-         *
-         * Auto-publish berdasarkan jadwal dilakukan oleh scheduler (AutoPublishBerita command).
-         * JANGAN ubah status di sini.
-         */
+        // ── Upload foto tambahan ──────────────────────────────────
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $imagePaths[] = $file->store('img/artikel', 'public');
+            }
+        }
+        $validated['images'] = count($imagePaths) > 0 ? $imagePaths : null;
+
+        // ── Logika tanggal_publikasi ──────────────────────────────
         if ($validated['status'] === 'publish' && empty($validated['tanggal_publikasi'])) {
             $validated['tanggal_publikasi'] = now();
         }
@@ -156,6 +167,9 @@ class ArtikelController extends Controller
                          ->with('success', 'created');
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // SHOW
+    // ──────────────────────────────────────────────────────────────
     public function show(string $id): Response
     {
         $artikel = Artikel::findOrFail($id);
@@ -169,6 +183,9 @@ class ArtikelController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // EDIT
+    // ──────────────────────────────────────────────────────────────
     public function edit(string $id): Response
     {
         $artikel = Artikel::findOrFail($id);
@@ -194,21 +211,29 @@ class ArtikelController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // UPDATE
+    // ──────────────────────────────────────────────────────────────
     public function update(Request $request, string $id): RedirectResponse
     {
         $artikel = Artikel::findOrFail($id);
 
         $validated = $request->validate([
-            'judul'             => 'required|string|max:255',
-            'isi'               => 'required|string',
-            'kategori'          => 'required|string|max:255',
-            'penulis'           => 'required|string|max:255',
-            'foto'              => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'status'            => 'required|in:draft,publish',
-            'tanggal_publikasi' => 'nullable|date',
+            'judul'              => 'required|string|max:255',
+            'isi'                => 'required|string',
+            'kategori'           => 'required|string|max:255',
+            'penulis'            => 'required|string|max:255',
+            'foto'               => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'images'             => 'nullable|array|max:10',
+            'images.*'           => 'image|mimes:jpeg,png,jpg|max:2048',
+            'existing_images'    => 'nullable|array',
+            'existing_images.*'  => 'nullable|string',
+            'remove_foto'        => 'nullable|in:0,1',
+            'status'             => 'required|in:draft,publish',
+            'tanggal_publikasi'  => 'nullable|date',
         ]);
 
-        // Update slug hanya jika judul berubah
+        // ── Update slug jika judul berubah ────────────────────────
         if ($validated['judul'] !== $artikel->judul) {
             $slug         = Str::slug($validated['judul']);
             $originalSlug = $slug;
@@ -219,25 +244,49 @@ class ArtikelController extends Controller
             $validated['slug'] = $slug;
         }
 
-        // Upload foto baru
+        // ── Foto utama ────────────────────────────────────────────
         $fotoPath = $artikel->foto;
-        if ($request->hasFile('foto')) {
+
+        if ($request->input('remove_foto') === '1') {
             if ($artikel->foto) {
                 Storage::disk('public')->delete($artikel->foto);
+            }
+            $fotoPath = null;
+        }
+
+        if ($request->hasFile('foto')) {
+            if ($fotoPath) {
+                Storage::disk('public')->delete($fotoPath);
             }
             $fotoPath = $request->file('foto')->store('img/artikel', 'public');
         }
         $validated['foto'] = $fotoPath;
 
-        /*
-         * Logika tanggal_publikasi saat update:
-         * - Status PUBLISH + ada tanggal  → simpan tanggal (bisa masa depan)
-         * - Status PUBLISH + tanpa tanggal → set ke sekarang
-         * - Status DRAFT                  → simpan apa adanya, JANGAN ubah status
-         */
+        // ── Foto tambahan ─────────────────────────────────────────
+        $oldImages     = $artikel->images ?? [];
+        $keepImages    = $validated['existing_images'] ?? [];
+        $deletedImages = array_diff($oldImages, $keepImages);
+
+        foreach ($deletedImages as $deletedPath) {
+            Storage::disk('public')->delete($deletedPath);
+        }
+
+        $newImagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $newImagePaths[] = $file->store('img/artikel', 'public');
+            }
+        }
+
+        $finalImages = array_values(array_merge($keepImages, $newImagePaths));
+        $validated['images'] = count($finalImages) > 0 ? $finalImages : null;
+
+        // ── Logika tanggal_publikasi ──────────────────────────────
         if ($validated['status'] === 'publish' && empty($validated['tanggal_publikasi'])) {
             $validated['tanggal_publikasi'] = now();
         }
+
+        unset($validated['existing_images'], $validated['remove_foto']);
 
         $artikel->update($validated);
 
@@ -245,14 +294,26 @@ class ArtikelController extends Controller
                          ->with('success', 'updated');
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // DESTROY
+    // ──────────────────────────────────────────────────────────────
     public function destroy(string $id): RedirectResponse
     {
         $artikel = Artikel::findOrFail($id);
 
         try {
+            // Hapus foto utama
             if ($artikel->foto) {
                 Storage::disk('public')->delete($artikel->foto);
             }
+
+            // Hapus semua foto tambahan
+            if (!empty($artikel->images)) {
+                foreach ($artikel->images as $imagePath) {
+                    Storage::disk('public')->delete($imagePath);
+                }
+            }
+
             $artikel->delete();
 
             return redirect()->route('admin.artikel.index')

@@ -14,6 +14,9 @@ use Carbon\Carbon;
 
 class BeritaController extends Controller
 {
+    // ──────────────────────────────────────────────────────────────
+    // INDEX
+    // ──────────────────────────────────────────────────────────────
     public function index(Request $request): Response
     {
         $query = Berita::query();
@@ -21,8 +24,8 @@ class BeritaController extends Controller
         if ($request->filled('search')) {
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
-                $q->where('judul', 'LIKE', "%{$search}%")
-                  ->orWhere('isi', 'LIKE', "%{$search}%")
+                $q->where('judul',    'LIKE', "%{$search}%")
+                  ->orWhere('isi',      'LIKE', "%{$search}%")
                   ->orWhere('kategori', 'LIKE', "%{$search}%");
             });
         }
@@ -76,6 +79,9 @@ class BeritaController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // CREATE
+    // ──────────────────────────────────────────────────────────────
     public function create(): Response
     {
         $kategoriList = Berita::select('kategori')
@@ -93,6 +99,9 @@ class BeritaController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // STORE
+    // ──────────────────────────────────────────────────────────────
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -100,11 +109,13 @@ class BeritaController extends Controller
             'isi'               => 'required|string',
             'kategori'          => 'required|string|max:255',
             'foto'              => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'images'            => 'nullable|array|max:10',
+            'images.*'          => 'image|mimes:jpeg,png,jpg|max:2048',
             'status'            => 'required|in:draft,publish',
             'tanggal_publikasi' => 'nullable|date',
         ]);
 
-        // Generate slug unik
+        // ── Slug unik ─────────────────────────────────────────────
         $slug         = Str::slug($validated['judul']);
         $originalSlug = $slug;
         $counter      = 1;
@@ -113,29 +124,26 @@ class BeritaController extends Controller
         }
         $validated['slug'] = $slug;
 
-        // Upload foto
+        // ── Upload foto utama ─────────────────────────────────────
         $fotoPath = null;
         if ($request->hasFile('foto')) {
             $fotoPath = $request->file('foto')->store('img/berita', 'public');
         }
         $validated['foto'] = $fotoPath;
 
-        /*
-         * Logika tanggal_publikasi:
-         * - Status PUBLISH + ada tanggal  → simpan tanggal tersebut (bisa masa depan = terjadwal)
-         * - Status PUBLISH + tanpa tanggal → set ke sekarang (publish langsung)
-         * - Status DRAFT + ada tanggal    → simpan tanggal untuk penjadwalan, STATUS TETAP DRAFT
-         * - Status DRAFT + tanpa tanggal  → tanpa tanggal, draft biasa
-         *
-         * CATATAN: Auto-publish berdasarkan jadwal dilakukan oleh App\Console\Commands\AutoPublishBerita
-         * yang dijalankan via scheduler setiap menit. Jangan ubah status di sini.
-         */
+        // ── Upload foto tambahan (images) ─────────────────────────
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $imagePaths[] = $file->store('img/berita', 'public');
+            }
+        }
+        $validated['images'] = count($imagePaths) > 0 ? $imagePaths : null;
+
+        // ── Logika tanggal_publikasi ──────────────────────────────
         if ($validated['status'] === 'publish' && empty($validated['tanggal_publikasi'])) {
             $validated['tanggal_publikasi'] = now();
         }
-
-        // PENTING: Jangan pernah ubah status dari draft → publish di sini.
-        // Status yang dikirim dari form adalah keputusan admin.
 
         Berita::create($validated);
 
@@ -143,6 +151,9 @@ class BeritaController extends Controller
                          ->with('success', 'created');
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // SHOW
+    // ──────────────────────────────────────────────────────────────
     public function show(string $id): Response
     {
         $berita = Berita::findOrFail($id);
@@ -156,6 +167,9 @@ class BeritaController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // EDIT
+    // ──────────────────────────────────────────────────────────────
     public function edit(string $id): Response
     {
         $berita = Berita::findOrFail($id);
@@ -176,20 +190,29 @@ class BeritaController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // UPDATE
+    // ──────────────────────────────────────────────────────────────
     public function update(Request $request, string $id): RedirectResponse
     {
         $berita = Berita::findOrFail($id);
 
         $validated = $request->validate([
-            'judul'             => 'required|string|max:255',
-            'isi'               => 'required|string',
-            'kategori'          => 'required|string|max:255',
-            'foto'              => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'status'            => 'required|in:draft,publish',
-            'tanggal_publikasi' => 'nullable|date',
+            'judul'              => 'required|string|max:255',
+            'isi'                => 'required|string',
+            'kategori'           => 'required|string|max:255',
+            'foto'               => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'images'             => 'nullable|array|max:10',
+            'images.*'           => 'image|mimes:jpeg,png,jpg|max:2048',
+            // Array path foto lama yang masih ingin DIPERTAHANKAN
+            'existing_images'    => 'nullable|array',
+            'existing_images.*'  => 'nullable|string',
+            'remove_foto'        => 'nullable|in:0,1',
+            'status'             => 'required|in:draft,publish',
+            'tanggal_publikasi'  => 'nullable|date',
         ]);
 
-        // Update slug hanya jika judul berubah
+        // ── Update slug jika judul berubah ────────────────────────
         if ($validated['judul'] !== $berita->judul) {
             $slug         = Str::slug($validated['judul']);
             $originalSlug = $slug;
@@ -200,25 +223,60 @@ class BeritaController extends Controller
             $validated['slug'] = $slug;
         }
 
-        // Upload foto baru
+        // ── Foto utama ────────────────────────────────────────────
         $fotoPath = $berita->foto;
-        if ($request->hasFile('foto')) {
+
+        // Hapus foto utama jika diminta
+        if ($request->input('remove_foto') === '1') {
             if ($berita->foto) {
                 Storage::disk('public')->delete($berita->foto);
+            }
+            $fotoPath = null;
+        }
+
+        // Upload foto utama baru jika ada
+        if ($request->hasFile('foto')) {
+            if ($fotoPath) {
+                Storage::disk('public')->delete($fotoPath);
             }
             $fotoPath = $request->file('foto')->store('img/berita', 'public');
         }
         $validated['foto'] = $fotoPath;
 
-        /*
-         * Logika tanggal_publikasi saat update:
-         * - Status PUBLISH + ada tanggal  → simpan tanggal (bisa masa depan)
-         * - Status PUBLISH + tanpa tanggal → set ke sekarang
-         * - Status DRAFT                  → simpan apa adanya, JANGAN ubah status
-         */
+        // ── Foto tambahan (images) ────────────────────────────────
+        // 1. Ambil foto lama yang ada di DB
+        $oldImages      = $berita->images ?? [];  // array path lama
+
+        // 2. Foto lama yang masih mau dipertahankan (dikirim dari frontend)
+        $keepImages     = $validated['existing_images'] ?? [];
+
+        // 3. Tentukan foto lama yang DIHAPUS (ada di DB tapi tidak di keepImages)
+        $deletedImages  = array_diff($oldImages, $keepImages);
+
+        // 4. Hapus file yang dihapus dari storage
+        foreach ($deletedImages as $deletedPath) {
+            Storage::disk('public')->delete($deletedPath);
+        }
+
+        // 5. Upload foto tambahan baru jika ada
+        $newImagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $newImagePaths[] = $file->store('img/berita', 'public');
+            }
+        }
+
+        // 6. Gabung foto lama yang dipertahankan + foto baru
+        $finalImages = array_values(array_merge($keepImages, $newImagePaths));
+        $validated['images'] = count($finalImages) > 0 ? $finalImages : null;
+
+        // ── Logika tanggal_publikasi ──────────────────────────────
         if ($validated['status'] === 'publish' && empty($validated['tanggal_publikasi'])) {
             $validated['tanggal_publikasi'] = now();
         }
+
+        // Bersihkan key yang tidak ada di fillable sebelum update
+        unset($validated['existing_images'], $validated['remove_foto']);
 
         $berita->update($validated);
 
@@ -226,14 +284,26 @@ class BeritaController extends Controller
                          ->with('success', 'updated');
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // DESTROY
+    // ──────────────────────────────────────────────────────────────
     public function destroy(string $id): RedirectResponse
     {
         $berita = Berita::findOrFail($id);
 
         try {
+            // Hapus foto utama
             if ($berita->foto) {
                 Storage::disk('public')->delete($berita->foto);
             }
+
+            // Hapus semua foto tambahan
+            if (!empty($berita->images)) {
+                foreach ($berita->images as $imagePath) {
+                    Storage::disk('public')->delete($imagePath);
+                }
+            }
+
             $berita->delete();
 
             return redirect()->route('admin.berita.index')

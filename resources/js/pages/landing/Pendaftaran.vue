@@ -88,78 +88,66 @@ const step1Errors = ref<Record<string, string>>({});
 const validateStep1 = (): boolean => {
     step1Errors.value = {};
 
-    // nama_lengkap: required|string|max:255
     if (!form.nama_lengkap) {
         step1Errors.value['nama_lengkap'] = 'Nama lengkap wajib diisi.';
     } else if (form.nama_lengkap.length > 255) {
         step1Errors.value['nama_lengkap'] = 'Nama lengkap maksimal 255 karakter.';
     }
 
-    // jenis_kelamin: required|in:Laki-laki,Perempuan
     if (!form.jenis_kelamin) {
         step1Errors.value['jenis_kelamin'] = 'Jenis kelamin wajib dipilih.';
     } else if (!['Laki-laki','Perempuan'].includes(form.jenis_kelamin)) {
         step1Errors.value['jenis_kelamin'] = 'Jenis kelamin tidak valid.';
     }
 
-    // tempat_lahir: required|string|max:100
     if (!form.tempat_lahir) {
         step1Errors.value['tempat_lahir'] = 'Tempat lahir wajib diisi.';
     } else if (form.tempat_lahir.length > 100) {
         step1Errors.value['tempat_lahir'] = 'Tempat lahir maksimal 100 karakter.';
     }
 
-    // tanggal_lahir: required|date
     if (!form.tanggal_lahir) {
         step1Errors.value['tanggal_lahir'] = 'Tanggal lahir wajib diisi.';
     }
 
-    // nisn: required|string|max:20
     if (!form.nisn) {
         step1Errors.value['nisn'] = 'NISN wajib diisi.';
     } else if (form.nisn.length > 20) {
         step1Errors.value['nisn'] = 'NISN maksimal 20 karakter.';
     }
 
-    // agama: required|string|max:50
     if (!form.agama) {
         step1Errors.value['agama'] = 'Agama wajib dipilih.';
     }
 
-    // anak_ke: required|integer|min:1|max:30
     if (!form.anak_ke) {
         step1Errors.value['anak_ke'] = 'Anak ke- wajib diisi.';
     } else if (parseInt(String(form.anak_ke)) < 1 || parseInt(String(form.anak_ke)) > 30) {
         step1Errors.value['anak_ke'] = 'Anak ke- harus antara 1 - 30.';
     }
 
-    // no_kartu_keluarga: required|string|max:30
     if (!form.no_kartu_keluarga) {
         step1Errors.value['no_kartu_keluarga'] = 'No. Kartu Keluarga wajib diisi.';
     } else if (form.no_kartu_keluarga.length > 30) {
         step1Errors.value['no_kartu_keluarga'] = 'No. KK maksimal 30 karakter.';
     }
 
-    // nik: required|string|max:20
     if (!form.nik) {
         step1Errors.value['nik'] = 'NIK wajib diisi.';
     } else if (form.nik.length > 20) {
         step1Errors.value['nik'] = 'NIK maksimal 20 karakter.';
     }
 
-    // no_akte: required|string|max:100
     if (!form.no_akte) {
         step1Errors.value['no_akte'] = 'No. Akte Kelahiran wajib diisi.';
     } else if (form.no_akte.length > 100) {
         step1Errors.value['no_akte'] = 'No. Akte maksimal 100 karakter.';
     }
 
-    // penerima_bantuan: required|array|min:1
     if ((form.penerima_bantuan as string[]).length === 0) {
         step1Errors.value['penerima_bantuan'] = 'Penerima bantuan wajib dipilih minimal satu.';
     }
 
-    // nomor_kip: nullable|string|max:50 — wajib jika KIP dipilih
     if ((form.penerima_bantuan as string[]).includes('KIP')) {
         if (!form.nomor_kip) {
             step1Errors.value['nomor_kip'] = 'Nomor KIP wajib diisi.';
@@ -168,21 +156,18 @@ const validateStep1 = (): boolean => {
         }
     }
 
-    // no_hp: required|string|max:20
     if (!form.no_hp) {
         step1Errors.value['no_hp'] = 'No. HP wajib diisi.';
     } else if (form.no_hp.length > 20) {
         step1Errors.value['no_hp'] = 'No. HP maksimal 20 karakter.';
     }
 
-    // asal_sekolah: required|string|max:255
     if (!form.asal_sekolah) {
         step1Errors.value['asal_sekolah'] = 'Asal sekolah wajib diisi.';
     } else if (form.asal_sekolah.length > 255) {
         step1Errors.value['asal_sekolah'] = 'Asal sekolah maksimal 255 karakter.';
     }
 
-    // tahun_lulus: required|digits:4|integer|min:2000|max:2099
     if (!form.tahun_lulus) {
         step1Errors.value['tahun_lulus'] = 'Tahun lulus wajib diisi.';
     } else if (!/^\d{4}$/.test(form.tahun_lulus)) {
@@ -223,7 +208,6 @@ const step2Errors = ref<Record<string, string>>({});
 const validateStep2 = (): boolean => {
     step2Errors.value = {};
 
-    // Ayah — required|string|max sesuai backend
     if (!form.nama_ayah) step2Errors.value['nama_ayah'] = 'Nama ayah wajib diisi.';
     else if (form.nama_ayah.length > 255) step2Errors.value['nama_ayah'] = 'Nama ayah maksimal 255 karakter.';
 
@@ -242,7 +226,6 @@ const validateStep2 = (): boolean => {
     if (!form.no_hp_ayah) step2Errors.value['no_hp_ayah'] = 'No. HP ayah wajib diisi.';
     else if (form.no_hp_ayah.length > 20) step2Errors.value['no_hp_ayah'] = 'No. HP ayah maksimal 20 karakter.';
 
-    // Ibu
     if (!form.nama_ibu) step2Errors.value['nama_ibu'] = 'Nama ibu wajib diisi.';
     else if (form.nama_ibu.length > 255) step2Errors.value['nama_ibu'] = 'Nama ibu maksimal 255 karakter.';
 
@@ -261,7 +244,6 @@ const validateStep2 = (): boolean => {
     if (!form.no_hp_ibu) step2Errors.value['no_hp_ibu'] = 'No. HP ibu wajib diisi.';
     else if (form.no_hp_ibu.length > 20) step2Errors.value['no_hp_ibu'] = 'No. HP ibu maksimal 20 karakter.';
 
-    // Alamat
     if (!form.jalan) step2Errors.value['jalan'] = 'Jalan wajib diisi.';
     else if (form.jalan.length > 255) step2Errors.value['jalan'] = 'Jalan maksimal 255 karakter.';
 
@@ -277,7 +259,6 @@ const validateStep2 = (): boolean => {
     if (!form.kecamatan) step2Errors.value['kecamatan'] = 'Kecamatan wajib diisi.';
     else if (form.kecamatan.length > 100) step2Errors.value['kecamatan'] = 'Kecamatan maksimal 100 karakter.';
 
-    // Jurusan: required|in:TKRO,TJKT
     if (!form.jurusan) {
         step2Errors.value['jurusan'] = 'Jurusan wajib dipilih.';
     } else if (!['TKRO','TJKT'].includes(form.jurusan)) {
@@ -291,8 +272,6 @@ const validateStep2 = (): boolean => {
     return true;
 };
 
-// ── DEBUG SUBMIT ───────────────────────────────────────────────────
-// Field step 1 & 2 untuk mapping server errors
 const step1Fields = [
     'nama_lengkap','jenis_kelamin','tempat_lahir','tanggal_lahir',
     'nisn','agama','anak_ke','no_kartu_keluarga','nik','no_akte',
@@ -309,18 +288,14 @@ const submit = () => {
     if (!validateStep2()) return;
     form.post(route('pendaftaran.store'), {
         onError: (errors) => {
-            // Cek apakah ada error di field step 1
             const hasStep1Error = step1Fields.some(f => errors[f]);
             if (hasStep1Error) {
-                // Kembali ke step 1, tampilkan error, scroll ke error
                 currentStep.value = 1;
-                // Salin server errors ke step1Errors agar tampil di UI
                 step1Fields.forEach(f => {
                     if (errors[f]) step1Errors.value[f] = errors[f];
                 });
                 setTimeout(() => scrollToFirstError(), 100);
             } else {
-                // Error di step 2
                 step2Fields.forEach((f: string) => {
                     if (errors[f]) step2Errors.value[f] = errors[f];
                 });
@@ -380,6 +355,9 @@ const openContoh = (key: string) => {
 };
 
 const closeContoh = () => { showContoh.value = false; };
+
+// ── Google Form link ──────────────────────────────────────────────
+const GFORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScO2vo5YiXj4Fh3UAvKLAKUgOqN1E2cs1m-vPFqh2S3TmrTAw/viewform';
 </script>
 
 <template>
@@ -399,7 +377,16 @@ const closeContoh = () => { showContoh.value = false; };
                 </div>
             </div>
             <div class="topbar-right">
-                <a href="/" class="topbar-back">← Beranda</a>
+                <span class="topbar-gform-text">Daftar via Google Form?</span>
+                <a :href="GFORM_URL" target="_blank" rel="noopener noreferrer" class="topbar-gform-btn" title="Daftar via Google Form">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span class="topbar-gform-label">Buka</span>
+                </a>
+                <div class="topbar-divider"></div>
+                <a href="/" class="topbar-back">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    <span class="topbar-back-label">Beranda</span>
+                </a>
             </div>
         </header>
 
@@ -416,6 +403,8 @@ const closeContoh = () => { showContoh.value = false; };
                     <div class="date-value">{{ today }}</div>
                 </div>
             </div>
+
+
 
             <div class="progress-track">
                 <div class="progress-fill" :style="{ width: currentStep === 1 ? '50%' : '100%' }"></div>
@@ -826,12 +815,20 @@ const closeContoh = () => { showContoh.value = false; };
 .root { min-height: 100vh; background: #f0f0f0; font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; padding-bottom: 80px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 .topbar { background: #1a2332; padding: 0 40px; height: 70px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-.topbar-left { display: flex; align-items: center; gap: 16px; }
+.topbar-left { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
 .topbar-logo-wrap { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
 .topbar-logo { height: 36px; width: 36px; object-fit: contain; }
-.topbar-name { font-size: 15px; font-weight: 800; color: white; letter-spacing: 0.05em; }
+.topbar-school { min-width: 0; }
+.topbar-name { font-size: 15px; font-weight: 800; color: white; letter-spacing: 0.05em; white-space: nowrap; }
 .topbar-tagline { font-size: 10px; color: rgba(255,255,255,0.45); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
-.topbar-back { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55); text-decoration: none; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.15); transition: all 0.2s; }
+.topbar-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.topbar-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.15); }
+.topbar-gform-text { font-size: 12px; color: rgba(255,255,255,0.45); white-space: nowrap; }
+.topbar-gform-btn { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; color: #4ade80; text-decoration: none; white-space: nowrap; padding: 7px 14px; border: 1px solid rgba(74,222,128,0.35); border-radius: 4px; transition: all 0.2s; }
+.topbar-gform-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.topbar-gform-btn:hover { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.6); color: #86efac; }
+.topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.55); text-decoration: none; padding: 7px 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; transition: all 0.2s; white-space: nowrap; }
+.topbar-back svg { width: 15px; height: 15px; flex-shrink: 0; }
 .topbar-back:hover { color: white; border-color: rgba(255,255,255,0.4); }
 .form-area { max-width: 900px; margin: 40px auto 60px; background: white; box-shadow: 0 4px 40px rgba(0,0,0,0.12); padding: 48px 56px 56px; }
 .form-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 8px; flex-wrap: wrap; }
@@ -841,7 +838,10 @@ const closeContoh = () => { showContoh.value = false; };
 .form-date-box { text-align: right; flex-shrink: 0; }
 .date-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: #374151; text-transform: uppercase; margin-bottom: 6px; }
 .date-value { font-size: 13px; font-weight: 600; color: #1a2332; }
-.progress-track { height: 3px; background: #e5e7eb; margin: 20px 0 36px; }
+
+
+
+.progress-track { height: 3px; background: #e5e7eb; margin: 28px 0 36px; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #15803d, #22c55e); transition: width 0.5s ease; }
 .doc-form { display: flex; flex-direction: column; gap: 32px; }
 .doc-section { display: flex; flex-direction: column; gap: 18px; }
@@ -916,12 +916,18 @@ const closeContoh = () => { showContoh.value = false; };
 
 @media (max-width: 768px) {
     .root { background: white; padding-bottom: 0; }
-    .topbar { padding: 0 16px; height: 60px; }
-    .topbar-logo-wrap { width: 40px; height: 40px; }
-    .topbar-logo { height: 30px; width: 30px; }
-    .topbar-name { font-size: 12px; letter-spacing: 0.02em; }
+    .topbar { padding: 0 14px; height: 56px; }
+    .topbar-logo-wrap { width: 36px; height: 36px; }
+    .topbar-logo { height: 28px; width: 28px; }
+    .topbar-name { display: block; font-size: 12px; letter-spacing: 0.02em; }
     .topbar-tagline { display: none; }
-    .topbar-back { font-size: 11px; padding: 5px 10px; }
+    .topbar-right { gap: 8px; }
+    .topbar-gform-text { display: none; }
+    .topbar-gform-label { display: none; }
+    .topbar-gform-btn { font-size: 11px; padding: 6px 10px; gap: 5px; }
+    .topbar-back { font-size: 11px; padding: 6px 10px; gap: 5px; }
+    .topbar-back-label { display: none; }
+    .topbar-divider { display: none; }
     .form-area { padding: 28px 16px 48px; margin: 0; box-shadow: none; border-radius: 0; }
     .form-title-row { flex-direction: column; gap: 8px; margin-bottom: 4px; }
     .form-main-title { font-size: 22px; margin-bottom: 4px; }
@@ -939,6 +945,8 @@ const closeContoh = () => { showContoh.value = false; };
     .jurusan-card { padding: 14px 16px; }
     .cal-dropdown { left: 0; right: auto; }
     .label-row { flex-wrap: wrap; gap: 4px; }
+
+
 }
 </style>
 

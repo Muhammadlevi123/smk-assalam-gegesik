@@ -21,14 +21,13 @@ class LandingPageController extends Controller
 {
     // =====================================================
     // HELPER: ambil data guru + tenaga kependidikan aktif
-    // Dipakai di index() dan tenagaPendidik()
     // =====================================================
     private function getStaffData(): array
     {
         $tahunAjaranTerbaru = TahunAjaran::getAktif()
             ?? TahunAjaran::orderBy('created_at', 'desc')->first();
 
-        $guru             = collect();
+        $guru               = collect();
         $tenagaKependidikan = collect();
 
         if ($tahunAjaranTerbaru) {
@@ -46,7 +45,6 @@ class LandingPageController extends Controller
                 } catch (\Exception $e) {
                     Log::warning('Gagal ambil mata pelajaran guru id=' . $item->id . ': ' . $e->getMessage());
                 }
-
                 return [
                     'id'             => $item->id,
                     'nama'           => $item->nama,
@@ -87,7 +85,6 @@ class LandingPageController extends Controller
         $tahunAjaranTerbaru = TahunAjaran::getAktif()
             ?? TahunAjaran::orderBy('created_at', 'desc')->first();
 
-        // Guru (untuk carousel — foto belum /storage prefix)
         $guru = collect();
         if ($tahunAjaranTerbaru) {
             $guruData = Guru::whereHas('tahunAjaran', function ($query) use ($tahunAjaranTerbaru) {
@@ -113,7 +110,6 @@ class LandingPageController extends Controller
             });
         }
 
-        // Tenaga Kependidikan
         $tenagaKependidikan = collect();
         if ($tahunAjaranTerbaru) {
             $tenagaKependidikan = TenagaKependidikan::whereHas('tahunAjaran', function ($query) use ($tahunAjaranTerbaru) {
@@ -130,7 +126,6 @@ class LandingPageController extends Controller
             ]);
         }
 
-        // Berita
         $berita = Berita::where('status', 'publish')
             ->where('tanggal_publikasi', '<=', Carbon::now())
             ->orderBy('tanggal_publikasi', 'desc')
@@ -150,9 +145,8 @@ class LandingPageController extends Controller
                 ];
             });
 
-        // Ekstrakurikuler
         $ekstrakurikuler = Organisasi::where('jenis', 'Ekstrakurikuler')
-            ->select('id', 'nama', 'jenis', 'deskripsi', 'logo')
+            ->select('id', 'slug', 'nama', 'jenis', 'deskripsi', 'logo')
             ->orderBy('nama', 'asc')
             ->get()
             ->map(function ($item, $index) {
@@ -170,6 +164,7 @@ class LandingPageController extends Controller
                 ];
                 return [
                     'id'        => $item->id,
+                    'slug'      => $item->slug,
                     'nama'      => $item->nama,
                     'jenis'     => $item->jenis,
                     'deskripsi' => $item->deskripsi,
@@ -178,7 +173,6 @@ class LandingPageController extends Controller
                 ];
             });
 
-        // Prestasi
         $prestasi = Prestasi::with('siswa')
             ->orderBy('tanggal', 'desc')
             ->take(10)
@@ -199,7 +193,6 @@ class LandingPageController extends Controller
                 'nama_siswa' => $item->siswa->pluck('nama')->join(', '),
             ]);
 
-        // Statistik
         $prestasiStats = [
             'internasional' => Prestasi::whereRaw('LOWER(tingkat) = ?', ['internasional'])->count(),
             'nasional'      => Prestasi::whereRaw('LOWER(tingkat) = ?', ['nasional'])->count(),
@@ -230,33 +223,26 @@ class LandingPageController extends Controller
 
     // =====================================================
     // SEJARAH
-    // Static page — konten di Vue langsung
     // =====================================================
     public function sejarah()
     {
         return Inertia::render('landing/Sejarah', [
-            'meta' => [
-                'title' => 'Sejarah Sekolah — SMK Assalam Gegesik',
-            ],
+            'meta' => ['title' => 'Sejarah Sekolah — SMK Assalam Gegesik'],
         ]);
     }
 
     // =====================================================
     // VISI MISI
-    // Static page — konten di Vue langsung
     // =====================================================
     public function visiMisi()
     {
         return Inertia::render('landing/VisiMisi', [
-            'meta' => [
-                'title' => 'Visi & Misi — SMK Assalam Gegesik',
-            ],
+            'meta' => ['title' => 'Visi & Misi — SMK Assalam Gegesik'],
         ]);
     }
 
     // =====================================================
     // TENAGA PENDIDIK & KEPENDIDIKAN
-    // Data dari DB: guru aktif + tenaga kependidikan aktif
     // =====================================================
     public function tenagaPendidik()
     {
@@ -267,8 +253,6 @@ class LandingPageController extends Controller
         $tenagaKependidikan = collect();
 
         if ($tahunAjaranTerbaru) {
-
-            // 1. Tenaga Kependidikan (urutan pertama)
             $tenagaKependidikan = TenagaKependidikan::whereHas('tahunAjaran', function ($q) use ($tahunAjaranTerbaru) {
                 $q->where('tahun_ajaran.id', $tahunAjaranTerbaru->id)
                   ->where('tenaga_kependidikan_tahun_ajaran.status', 'Aktif');
@@ -282,7 +266,6 @@ class LandingPageController extends Controller
                 'foto'    => $item->foto ? "/storage/{$item->foto}" : null,
             ]);
 
-            // 2. Guru — eager load mataPelajaran supaya tidak N+1
             $guruData = Guru::whereHas('tahunAjaran', function ($q) use ($tahunAjaranTerbaru) {
                 $q->where('tahun_ajaran.id', $tahunAjaranTerbaru->id)
                   ->where('guru_tahun_ajaran.status', 'Aktif');
@@ -298,7 +281,6 @@ class LandingPageController extends Controller
                 'nama'           => $item->nama,
                 'nip'            => $item->nip ?? null,
                 'foto'           => $item->foto ? "/storage/{$item->foto}" : null,
-                // Hanya ambil mata pelajaran pertama
                 'mata_pelajaran' => $item->mataPelajaran->first()?->nama ?? '-',
             ]);
         }
@@ -312,7 +294,6 @@ class LandingPageController extends Controller
 
     // =====================================================
     // STRUKTUR ORGANISASI
-    // Data dari DB: semua organisasi (OSIS, Ekskul, dll)
     // =====================================================
     public function strukturOrganisasi()
     {
@@ -326,28 +307,23 @@ class LandingPageController extends Controller
                 'deskripsi' => $item->deskripsi,
                 'logo'      => $item->logo ? "/storage/{$item->logo}" : null,
             ])
-            ->groupBy('jenis'); // Group berdasarkan jenis: Ekskul, OSIS, dll
+            ->groupBy('jenis');
 
         return Inertia::render('landing/StrukturOrganisasi', [
             'organisasi' => $organisasi,
-            'meta' => [
-                'title' => 'Struktur Organisasi — SMK Assalam Gegesik',
-            ],
+            'meta'       => ['title' => 'Struktur Organisasi — SMK Assalam Gegesik'],
         ]);
     }
 
     // =====================================================
     // PRESTASI
-    // Semua prestasi dari DB + statistik per tingkatan
-    // Mendukung filter tingkatan via query string
     // =====================================================
     public function prestasi(Request $request)
     {
-        $tingkatFilter = $request->get('tingkat'); // optional filter: internasional|nasional|provinsi|kabupaten
+        $tingkatFilter = $request->get('tingkat');
 
         $query = Prestasi::with('siswa')->orderBy('tanggal', 'desc');
 
-        // Filter jika ada query string ?tingkat=...
         if ($tingkatFilter) {
             $query->whereRaw('LOWER(tingkat) = ?', [strtolower($tingkatFilter)]);
         }
@@ -378,26 +354,22 @@ class LandingPageController extends Controller
         ];
 
         return Inertia::render('landing/Prestasi', [
-            'prestasi'       => $prestasi,
-            'stats'          => $stats,
-            'aktif_filter'   => $tingkatFilter,
-            'meta' => [
-                'title' => 'Prestasi Sekolah — SMK Assalam Gegesik',
-            ],
+            'prestasi'     => $prestasi,
+            'stats'        => $stats,
+            'aktif_filter' => $tingkatFilter,
+            'meta'         => ['title' => 'Prestasi Sekolah — SMK Assalam Gegesik'],
         ]);
     }
 
     // =====================================================
-    // BERITA — List semua berita publik dengan pagination
+    // BERITA — List
     // =====================================================
     public function berita(Request $request)
     {
         $kategori = $request->get('kategori');
         $search   = $request->get('q');
-        $page     = $request->get('page', 1);
-        $perPage  = 12; // 4 kolom x 3 baris
+        $perPage  = 12;
 
-        // ── Section 1: 5 berita TERBARU (selalu fresh, tidak ikut filter)
         $terbaru = Berita::where('status', 'publish')
             ->where('tanggal_publikasi', '<=', Carbon::now())
             ->orderBy('tanggal_publikasi', 'desc')
@@ -413,8 +385,6 @@ class LandingPageController extends Controller
                 'category'    => $item->kategori ?: 'Berita',
             ]);
 
-        // ── Section 2: 5 berita POPULER (ambil yang paling banyak dibaca —
-        //    karena belum ada kolom views, pakai 5 berita setelah terbaru)
         $popularIds = $terbaru->pluck('id')->toArray();
         $popular = Berita::where('status', 'publish')
             ->where('tanggal_publikasi', '<=', Carbon::now())
@@ -432,7 +402,6 @@ class LandingPageController extends Controller
                 'category'    => $item->kategori ?: 'Berita',
             ]);
 
-        // ── Section 3: SEMUA berita dengan pagination + filter
         $query = Berita::where('status', 'publish')
             ->where('tanggal_publikasi', '<=', Carbon::now())
             ->orderBy('tanggal_publikasi', 'desc');
@@ -457,7 +426,6 @@ class LandingPageController extends Controller
             'category'    => $item->kategori ?: 'Berita',
         ]);
 
-        // Semua kategori unik
         $kategoriList = Berita::where('status', 'publish')
             ->whereNotNull('kategori')
             ->distinct()
@@ -474,7 +442,8 @@ class LandingPageController extends Controller
     }
 
     // =====================================================
-    // BERITA DETAIL — Satu artikel berita
+    // BERITA DETAIL ← PERUBAHAN ADA DI SINI
+    // Tambah 'images' ke data yang dikirim ke frontend
     // =====================================================
     public function beritaDetail(string $slug)
     {
@@ -483,7 +452,6 @@ class LandingPageController extends Controller
             ->where('tanggal_publikasi', '<=', Carbon::now())
             ->firstOrFail();
 
-        // Berita terkait (kategori sama, bukan yang ini)
         $terkait = Berita::where('status', 'publish')
             ->where('id', '!=', $berita->id)
             ->where('kategori', $berita->kategori)
@@ -500,6 +468,12 @@ class LandingPageController extends Controller
                 'category'    => $item->kategori ?: 'Berita',
             ]);
 
+        // ── images: tambah prefix /storage/ ke tiap path ──────────
+        $images = collect($berita->images ?? [])
+            ->map(fn($path) => "/storage/{$path}")
+            ->values()
+            ->toArray();
+
         return Inertia::render('landing/BeritaDetail', [
             'berita' => [
                 'id'          => $berita->id,
@@ -507,6 +481,7 @@ class LandingPageController extends Controller
                 'slug'        => $berita->slug,
                 'isi'         => $berita->isi,
                 'image'       => $berita->foto ? "/storage/{$berita->foto}" : '/storage/img/news/default-news.jpg',
+                'images'      => $images,   // ← tambahan
                 'displayDate' => Carbon::parse($berita->tanggal_publikasi)->translatedFormat('d F Y'),
                 'category'    => $berita->kategori ?: 'Berita',
             ],
@@ -515,16 +490,13 @@ class LandingPageController extends Controller
     }
 
     // =====================================================
-    // ARTIKEL — List semua artikel publik
+    // ARTIKEL — List
     // =====================================================
     public function artikel(Request $request)
     {
-        $search  = $request->get('q');
-
+        $search   = $request->get('q');
         $kategori = $request->get('kategori');
 
-        // Home (tanpa filter): 13 = 1 featured + 12 grid (4x3)
-        // Filter/search: 12 = 4x3 murni
         $isFiltered = $kategori || $search;
         $perPage    = $isFiltered ? 12 : 13;
 
@@ -554,7 +526,6 @@ class LandingPageController extends Controller
             'image'       => $item->foto ? "/storage/{$item->foto}" : '/storage/img/news/default-news.jpg',
         ]);
 
-        // Kategori unik
         $kategoriList = Artikel::where('status', 'publish')
             ->whereNotNull('kategori')
             ->distinct()
@@ -569,7 +540,7 @@ class LandingPageController extends Controller
     }
 
     // =====================================================
-    // ARTIKEL DETAIL — Satu artikel
+    // ARTIKEL DETAIL
     // =====================================================
     public function artikelDetail(string $slug)
     {
@@ -595,6 +566,12 @@ class LandingPageController extends Controller
                 'image'       => $item->foto ? "/storage/{$item->foto}" : '/storage/img/news/default-news.jpg',
             ]);
 
+        // images: tambah prefix /storage/ ke tiap path
+        $images = collect($artikel->images ?? [])
+            ->map(fn($path) => "/storage/{$path}")
+            ->values()
+            ->toArray();
+
         return Inertia::render('landing/ArtikelDetail', [
             'artikel' => [
                 'id'          => $artikel->id,
@@ -604,6 +581,7 @@ class LandingPageController extends Controller
                 'penulis'     => $artikel->penulis ?? 'Tim Redaksi',
                 'kategori'    => $artikel->kategori ?: 'Artikel',
                 'image'       => $artikel->foto ? "/storage/{$artikel->foto}" : '/storage/img/news/default-news.jpg',
+                'images'      => $images,   // ← foto tambahan
                 'displayDate' => $artikel->tanggal_publikasi
                     ? Carbon::parse($artikel->tanggal_publikasi)->translatedFormat('d F Y')
                     : Carbon::parse($artikel->created_at)->translatedFormat('d F Y'),
@@ -613,15 +591,14 @@ class LandingPageController extends Controller
     }
 
     // =====================================================
-    // KALENDER AKADEMIK — Semua event kalender per tahun ajaran
+    // KALENDER AKADEMIK
     // =====================================================
     public function kalenderAkademik(Request $request)
     {
         Carbon::setLocale('id');
         $tahunAjaranId = $request->get('tahun_ajaran_id');
 
-        // Default: tahun ajaran aktif
-        $tahunAjaranAktif = TahunAjaran::getAktif()
+        $tahunAjaranAktif   = TahunAjaran::getAktif()
             ?? TahunAjaran::orderBy('created_at', 'desc')->first();
 
         $tahunAjaranDipilih = $tahunAjaranId
@@ -634,28 +611,27 @@ class LandingPageController extends Controller
                 ->orderBy('tanggal_mulai')
                 ->get()
                 ->map(fn($item) => [
-                    'id'               => $item->id,
-                    'judul'            => $item->judul,
-                    'tanggal_mulai'    => $item->tanggal_mulai?->format('Y-m-d'),
-                    'tanggal_selesai'  => $item->tanggal_selesai?->format('Y-m-d'),
-                    'tanggal_display'  => $item->tanggal_mulai?->translatedFormat('d F Y')
+                    'id'              => $item->id,
+                    'judul'           => $item->judul,
+                    'tanggal_mulai'   => $item->tanggal_mulai?->format('Y-m-d'),
+                    'tanggal_selesai' => $item->tanggal_selesai?->format('Y-m-d'),
+                    'tanggal_display' => $item->tanggal_mulai?->translatedFormat('d F Y')
                         . ($item->tanggal_selesai && $item->tanggal_selesai != $item->tanggal_mulai
                             ? ' — ' . $item->tanggal_selesai->translatedFormat('d F Y')
                             : ''),
-                    'bulan'            => $item->tanggal_mulai?->translatedFormat('F Y'),
+                    'bulan'           => $item->tanggal_mulai?->translatedFormat('F Y'),
                 ]);
         }
 
-        // Semua tahun ajaran tersedia untuk dropdown
         $semuaTahunAjaran = TahunAjaran::orderBy('created_at', 'desc')
             ->get()
             ->map(fn($t) => ['id' => $t->id, 'tahun' => $t->tahun]);
 
         return Inertia::render('landing/KalenderAkademik', [
-            'kalender'            => $kalender,
-            'tahun_ajaran_aktif'  => $tahunAjaranDipilih?->tahun ?? '-',
-            'tahun_ajaran_id'     => $tahunAjaranDipilih?->id,
-            'semua_tahun_ajaran'  => $semuaTahunAjaran,
+            'kalender'           => $kalender,
+            'tahun_ajaran_aktif' => $tahunAjaranDipilih?->tahun ?? '-',
+            'tahun_ajaran_id'    => $tahunAjaranDipilih?->id,
+            'semua_tahun_ajaran' => $semuaTahunAjaran,
         ]);
     }
 
@@ -707,6 +683,53 @@ class LandingPageController extends Controller
                 'general' => 'Maaf, terjadi kesalahan saat mengirim pesan. Silakan coba lagi.',
             ]);
         }
+    }
+
+    // =====================================================
+    // ORGANISASI DETAIL — Publik
+    // =====================================================
+    public function organisasiDetail(string $slug)
+    {
+        $organisasi = \App\Models\Organisasi::where('slug', $slug)->firstOrFail();
+
+        // Parse jadwal: "Senin 08.00–10.00; Rabu 13.00–Selesai" → array
+        $jadwalLines = [];
+        if ($organisasi->jadwal_latihan) {
+            foreach (explode('; ', $organisasi->jadwal_latihan) as $part) {
+                if (preg_match('/^(\w+)\s+(.+)$/', $part, $m)) {
+                    $jadwalLines[] = ['hari' => $m[1], 'jam' => $m[2]];
+                }
+            }
+        }
+
+        // Organisasi lain (jenis sama, bukan yang ini) sebagai rekomendasi
+        $lainnya = \App\Models\Organisasi::where('id', '!=', $organisasi->id)
+            ->where('jenis', $organisasi->jenis)
+            ->orderBy('nama')
+            ->take(4)
+            ->get()
+            ->map(fn($item) => [
+                'id'    => $item->id,
+                'slug'  => $item->slug,
+                'nama'  => $item->nama,
+                'jenis' => $item->jenis,
+                'logo'  => $item->logo ? "/storage/{$item->logo}" : null,
+            ]);
+
+        return \Inertia\Inertia::render('landing/OrganisasiDetail', [
+            'organisasi' => [
+                'id'             => $organisasi->id,
+                'slug'           => $organisasi->slug,
+                'nama'           => $organisasi->nama,
+                'jenis'          => $organisasi->jenis,
+                'deskripsi'      => $organisasi->deskripsi,
+                'pembina'        => $organisasi->pembina,
+                'jadwal_latihan' => $organisasi->jadwal_latihan,
+                'jadwal_lines'   => $jadwalLines,
+                'logo'           => $organisasi->logo ? "/storage/{$organisasi->logo}" : null,
+            ],
+            'lainnya' => $lainnya,
+        ]);
     }
 
     // =====================================================

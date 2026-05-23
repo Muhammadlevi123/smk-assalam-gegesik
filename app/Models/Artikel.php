@@ -19,20 +19,14 @@ class Artikel extends Model
         'kategori',
         'penulis',
         'foto',
+        'images',           // ← kolom baru
         'status',
         'tanggal_publikasi',
     ];
 
     protected $casts = [
-        /*
-         * Pakai 'date' bukan 'datetime' agar tidak ada konversi timezone
-         * yang menyebabkan tanggal 27 bergeser jadi 26.
-         *
-         * Dengan 'date': value disimpan dan dibaca sebagai YYYY-MM-DD murni.
-         * Dengan 'datetime': Laravel konversi ke Carbon dengan timezone app,
-         * bisa menyebabkan shift tanggal jika timezone server berbeda.
-         */
         'tanggal_publikasi' => 'date:Y-m-d',
+        'images'            => 'array',     // ← otomatis encode/decode JSON
     ];
 
     public function getTanggalPublikasiFormattedAttribute(): ?string
@@ -40,5 +34,15 @@ class Artikel extends Model
         return $this->tanggal_publikasi
             ? Carbon::parse($this->tanggal_publikasi)->translatedFormat('d F Y')
             : null;
+    }
+
+    /**
+     * Accessor: selalu return array kosong jika null.
+     */
+    public function getImagesAttribute($value): array
+    {
+        if (is_null($value)) return [];
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : [];
     }
 }

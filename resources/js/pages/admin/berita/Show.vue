@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '../../../layouts/AppLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { type BreadcrumbItem } from '../../../types';
 
 // ── Icons ─────────────────────────────────────────────────────────
@@ -13,6 +13,10 @@ const NewsIcon       = () => `<svg class="w-4 h-4" fill="none" stroke="currentCo
 const AlignLeftIcon  = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>`;
 const TagIcon        = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6h.008v.008H6V6Z" /></svg>`;
 const LinkIcon       = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" /></svg>`;
+const XMarkIcon      = () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
+const ChevronLeftIcon  = () => `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>`;
+const ChevronRightIcon = () => `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>`;
+const GalleryIcon    = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 0 1-1.125-1.125v-3.75ZM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 0 1-1.125-1.125v-8.25ZM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 0 1-1.125-1.125v-2.25Z" /></svg>`;
 
 // ── Types ─────────────────────────────────────────────────────────
 interface Berita {
@@ -22,6 +26,7 @@ interface Berita {
     isi:                 string;
     kategori:            string;
     foto?:               string;
+    images?:             string[];   // ← foto tambahan
     status:              'draft' | 'publish';
     tanggal_publikasi?:  string;
     tanggal_formatted?:  string;
@@ -36,8 +41,8 @@ interface Props {
 const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard',    href: '/admin/dashboard' },
-    { title: 'Data Berita',  href: '/admin/berita' },
+    { title: 'Dashboard',     href: '/admin/dashboard' },
+    { title: 'Data Berita',   href: '/admin/berita' },
     { title: 'Detail Berita', href: `/admin/berita/${props.berita?.id}` },
 ];
 
@@ -78,7 +83,10 @@ const getStatusDot = (status: string) => {
 // ── Computed ──────────────────────────────────────────────────────
 const fotoUrl = computed(() => getFotoUrl(props.berita.foto));
 
-// Format isi berita menjadi paragraf HTML
+const extraImages = computed(() =>
+    (props.berita.images ?? []).map(path => `/storage/${path}`)
+);
+
 const formattedContent = computed(() => {
     if (!props.berita.isi) return '';
     return props.berita.isi
@@ -89,14 +97,56 @@ const formattedContent = computed(() => {
         .join('');
 });
 
-// Hitung kata di isi berita
 const wordCount = computed(() => {
     if (!props.berita.isi) return 0;
     return props.berita.isi.trim().split(/\s+/).length;
 });
 
-// Estimasi menit baca (asumsi 200 kata/menit)
 const readingTime = computed(() => Math.max(1, Math.ceil(wordCount.value / 200)));
+
+// ── Lightbox ──────────────────────────────────────────────────────
+// Semua foto (utama + tambahan) digabung untuk navigasi lightbox
+const allImages = computed(() => {
+    const list: string[] = [];
+    if (fotoUrl.value) list.push(fotoUrl.value);
+    list.push(...extraImages.value);
+    return list;
+});
+
+const lightboxOpen  = ref(false);
+const lightboxIndex = ref(0);
+
+const openLightbox = (index: number) => {
+    lightboxIndex.value = index;
+    lightboxOpen.value  = true;
+    document.body.style.overflow = 'hidden';
+};
+
+const closeLightbox = () => {
+    lightboxOpen.value = false;
+    document.body.style.overflow = '';
+};
+
+const prevImage = () => {
+    lightboxIndex.value = (lightboxIndex.value - 1 + allImages.value.length) % allImages.value.length;
+};
+
+const nextImage = () => {
+    lightboxIndex.value = (lightboxIndex.value + 1) % allImages.value.length;
+};
+
+// Navigasi keyboard
+const onKeydown = (e: KeyboardEvent) => {
+    if (!lightboxOpen.value) return;
+    if (e.key === 'Escape')     closeLightbox();
+    if (e.key === 'ArrowLeft')  prevImage();
+    if (e.key === 'ArrowRight') nextImage();
+};
+
+// Tambahkan listener saat komponen mount
+import { onMounted, onUnmounted } from 'vue';
+onMounted(()  => window.addEventListener('keydown', onKeydown));
+onUnmounted(() => { window.removeEventListener('keydown', onKeydown); document.body.style.overflow = ''; });
 </script>
 
 <template>
@@ -116,13 +166,11 @@ const readingTime = computed(() => Math.max(1, Math.ceil(wordCount.value / 200))
                             Detail informasi berita dan konten
                         </p>
                         <div class="flex flex-wrap items-center gap-2 mt-1">
-                            <!-- Status badge -->
                             <span :class="getStatusColor(berita.status)"
                                 class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium">
                                 <span :class="getStatusDot(berita.status)" class="h-1.5 w-1.5 rounded-full"></span>
                                 {{ berita.status === 'publish' ? 'Publish' : 'Draft' }}
                             </span>
-                            <!-- Kategori -->
                             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                                 <span v-html="TagIcon()"></span>
                                 {{ berita.kategori }}
@@ -131,6 +179,12 @@ const readingTime = computed(() => Math.max(1, Math.ceil(wordCount.value / 200))
                                 class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                                 <span v-html="CalendarIcon()"></span>
                                 {{ berita.tanggal_formatted ?? formatDate(berita.tanggal_publikasi!) }}
+                            </span>
+                            <!-- Badge jumlah foto tambahan -->
+                            <span v-if="extraImages.length > 0"
+                                class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                                <span v-html="GalleryIcon()"></span>
+                                {{ extraImages.length }} foto tambahan
                             </span>
                         </div>
                     </div>
@@ -141,35 +195,32 @@ const readingTime = computed(() => Math.max(1, Math.ceil(wordCount.value / 200))
                     </Link>
                 </div>
 
-                <!-- ── BARIS 1: Foto + Info Dasar ─────────────────── -->
+                <!-- ── BARIS 1: Foto Utama + Info Dasar ──────────── -->
                 <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
 
-                    <!-- Foto Berita -->
+                    <!-- Foto Utama -->
                     <div class="xl:col-span-1">
                         <div class="h-full rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
                             <div class="border-b border-gray-100 bg-gray-50/50 px-6 py-4 dark:border-gray-800 dark:bg-gray-800/50">
                                 <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
-                                    Foto Berita
+                                    Foto Utama
                                 </h3>
-                                <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Gambar ilustrasi berita</p>
+                                <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Cover / thumbnail berita</p>
                             </div>
                             <div class="flex flex-col items-center gap-4 p-6">
                                 <div v-if="fotoUrl" class="w-full">
                                     <img :src="fotoUrl" :alt="berita.judul"
-                                        class="w-full max-h-64 rounded-xl object-cover border border-gray-200 dark:border-gray-700 ring-1 ring-black/5 dark:ring-white/10" />
-                                    <div class="mt-3 text-center">
-                                        <a :href="fotoUrl" target="_blank"
-                                            class="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline">
-                                            <span v-html="LinkIcon()"></span>
-                                            Lihat foto asli
-                                        </a>
+                                        class="w-full max-h-64 rounded-xl object-cover border border-gray-200 dark:border-gray-700 ring-1 ring-black/5 dark:ring-white/10 cursor-pointer hover:opacity-90 transition-opacity"
+                                        @click="openLightbox(0)" />
+                                    <div class="mt-3 flex items-center justify-between">
+                                        <p class="text-xs text-gray-400 dark:text-gray-500">Klik untuk perbesar</p>
                                     </div>
                                 </div>
                                 <div v-else
                                     class="w-full h-48 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 flex flex-col items-center justify-center gap-3">
                                     <span v-html="ImageIcon()" class="text-gray-300 dark:text-gray-600"></span>
-                                    <p class="text-sm text-gray-400 dark:text-gray-500">Tidak ada foto</p>
+                                    <p class="text-sm text-gray-400 dark:text-gray-500">Tidak ada foto utama</p>
                                 </div>
                             </div>
                         </div>
@@ -233,6 +284,54 @@ const readingTime = computed(() => Math.max(1, Math.ceil(wordCount.value / 200))
                                         </div>
                                     </div>
 
+                                    <!-- Jumlah Foto Tambahan -->
+                                    <div class="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
+                                        <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Foto Tambahan</p>
+                                        <div class="mt-1 flex items-center gap-1.5">
+                                            <span v-html="GalleryIcon()" class="text-gray-400 flex-shrink-0"></span>
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                                {{ extraImages.length > 0 ? `${extraImages.length} foto` : 'Tidak ada' }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── GALERI FOTO TAMBAHAN ────────────────────────── -->
+                <div v-if="extraImages.length > 0"
+                    class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                    <div class="border-b border-gray-100 bg-gray-50/50 px-6 py-4 dark:border-gray-800 dark:bg-gray-800/50">
+                        <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span v-html="GalleryIcon()"></span>
+                            Galeri Foto Tambahan
+                        </h3>
+                        <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                            {{ extraImages.length }} foto · Klik untuk memperbesar
+                        </p>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            <div
+                                v-for="(url, index) in extraImages"
+                                :key="index"
+                                class="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 aspect-square cursor-pointer"
+                                @click="openLightbox(fotoUrl ? index + 1 : index)"
+                            >
+                                <img :src="url" :alt="`Foto ${index + 1}`"
+                                    class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                <!-- Overlay -->
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
+                                    </svg>
+                                </div>
+                                <!-- Nomor -->
+                                <div class="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-xs font-bold rounded-md px-1.5 py-0.5">
+                                    {{ index + 1 }}
                                 </div>
                             </div>
                         </div>
@@ -253,14 +352,10 @@ const readingTime = computed(() => Math.max(1, Math.ceil(wordCount.value / 200))
                                 <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">Audit trail</p>
                             </div>
                             <div class="p-6 space-y-4">
-
-                                <!-- Dibuat -->
                                 <div class="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
                                     <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Dibuat</p>
                                     <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{{ formatDateTime(berita.created_at) }}</p>
                                 </div>
-
-                                <!-- Diperbarui -->
                                 <div class="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
                                     <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Terakhir Diperbarui</p>
                                     <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{{ formatDateTime(berita.updated_at) }}</p>
@@ -305,5 +400,53 @@ const readingTime = computed(() => Math.max(1, Math.ceil(wordCount.value / 200))
 
             </div>
         </div>
+
+        <!-- ── LIGHTBOX ───────────────────────────────────────────── -->
+        <Teleport to="body">
+            <div v-if="lightboxOpen"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+                @click.self="closeLightbox">
+
+                <!-- Tombol tutup -->
+                <button @click="closeLightbox"
+                    class="absolute top-4 right-4 z-10 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-colors">
+                    <span v-html="XMarkIcon()"></span>
+                </button>
+
+                <!-- Counter -->
+                <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/50 text-white text-sm font-medium px-3 py-1 rounded-full">
+                    {{ lightboxIndex + 1 }} / {{ allImages.length }}
+                </div>
+
+                <!-- Tombol prev -->
+                <button v-if="allImages.length > 1" @click="prevImage"
+                    class="absolute left-4 z-10 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-colors">
+                    <span v-html="ChevronLeftIcon()"></span>
+                </button>
+
+                <!-- Gambar utama lightbox -->
+                <img :src="allImages[lightboxIndex]" :alt="`Foto ${lightboxIndex + 1}`"
+                    class="max-h-[85vh] max-w-[90vw] rounded-xl object-contain shadow-2xl select-none" />
+
+                <!-- Tombol next -->
+                <button v-if="allImages.length > 1" @click="nextImage"
+                    class="absolute right-4 z-10 rounded-full bg-white/10 hover:bg-white/20 p-2 text-white transition-colors">
+                    <span v-html="ChevronRightIcon()"></span>
+                </button>
+
+                <!-- Thumbnail strip (jika lebih dari 1 foto) -->
+                <div v-if="allImages.length > 1"
+                    class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 px-4 overflow-x-auto max-w-[90vw]">
+                    <button
+                        v-for="(url, i) in allImages" :key="i"
+                        @click="lightboxIndex = i"
+                        :class="i === lightboxIndex ? 'ring-2 ring-white opacity-100' : 'opacity-50 hover:opacity-80'"
+                        class="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden transition-all">
+                        <img :src="url" :alt="`Thumbnail ${i + 1}`" class="w-full h-full object-cover" />
+                    </button>
+                </div>
+            </div>
+        </Teleport>
+
     </AppLayout>
 </template>

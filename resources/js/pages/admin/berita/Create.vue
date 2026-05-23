@@ -5,6 +5,7 @@ import { ref, computed, watch } from 'vue';
 import { DatePicker } from 'v-calendar';
 import 'v-calendar/style.css';
 import { type BreadcrumbItem } from '../../../types';
+import RichTextEditor from '@/components/RichTextEditor.vue';
 
 // ── Icons ─────────────────────────────────────────────────────────
 const ArrowLeftIcon   = () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>`;
@@ -15,6 +16,7 @@ const CalendarIcon    = () => `<svg class="w-4 h-4" fill="none" stroke="currentC
 const NewsIcon        = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5-3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>`;
 const XMarkIcon       = () => `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
 const LockIcon        = () => `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>`;
+const PhotoIcon       = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>`;
 
 // ── Types ─────────────────────────────────────────────────────────
 interface KategoriItem  { value: string; label: string; }
@@ -28,12 +30,12 @@ interface Props {
 const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard',    href: '/admin/dashboard' },
-    { title: 'Data Berita',  href: '/admin/berita' },
+    { title: 'Dashboard',     href: '/admin/dashboard' },
+    { title: 'Data Berita',   href: '/admin/berita' },
     { title: 'Tambah Berita', href: '/admin/berita/create' },
 ];
 
-// ── Tanggal hari ini (normalize ke 00:00) ─────────────────────────
+// ── Tanggal hari ini ──────────────────────────────────────────────
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
@@ -43,7 +45,6 @@ const toInputFormat = (date: Date): string => {
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
 };
-
 const todayString = toInputFormat(today);
 
 // ── Form ──────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ const form = useForm({
     isi:               '',
     kategori:          '',
     foto:              null as File | null,
+    images:            [] as File[],   // ← foto tambahan
     status:            'draft' as 'draft' | 'publish',
     tanggal_publikasi: '',
 });
@@ -61,8 +63,6 @@ const setError    = (k: string, m: string) => { localErrors.value[k] = m; };
 const clearErrors = () => { localErrors.value = {}; };
 
 // ── Watch status ──────────────────────────────────────────────────
-// Publish → set tanggal hari ini & tutup kalender
-// Draft   → kosongkan tanggal
 watch(() => form.status, (newStatus) => {
     if (newStatus === 'publish') {
         tanggalValue.value     = new Date(today);
@@ -89,7 +89,7 @@ const onKategoriFocus       = () => { kategoriSearch.value = form.kategori; show
 const selectKategori        = (val: string) => { form.kategori = val; kategoriSearch.value = val; showKategoriDropdown.value = false; delete localErrors.value['kategori']; };
 const closeKategoriDropdown = () => { showKategoriDropdown.value = false; };
 
-// ── Foto upload ───────────────────────────────────────────────────
+// ── Foto utama ────────────────────────────────────────────────────
 const imagePreview = ref<string | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
@@ -106,11 +106,63 @@ const onFotoChange = (e: Event) => {
 };
 
 const removeFoto = () => {
-    form.foto = null; imagePreview.value = null;
+    form.foto = null;
+    imagePreview.value = null;
     if (fileInputRef.value) fileInputRef.value.value = '';
 };
 
-// ── Tanggal Publikasi (v-calendar) ────────────────────────────────
+// ── Foto tambahan (images) ────────────────────────────────────────
+interface ImageItem {
+    file:    File;
+    preview: string;
+}
+
+const imageItems       = ref<ImageItem[]>([]);
+const imagesInputRef   = ref<HTMLInputElement | null>(null);
+const MAX_IMAGES       = 10;
+
+const onImagesChange = (e: Event) => {
+    const files = Array.from((e.target as HTMLInputElement).files ?? []);
+    if (!files.length) return;
+
+    const remaining = MAX_IMAGES - imageItems.value.length;
+    if (remaining <= 0) {
+        setError('images', `Maksimal ${MAX_IMAGES} foto tambahan.`);
+        return;
+    }
+
+    const toProcess = files.slice(0, remaining);
+    delete localErrors.value['images'];
+
+    toProcess.forEach(file => {
+        if (file.size > 2 * 1024 * 1024) {
+            setError('images', `"${file.name}" melebihi batas 2MB.`);
+            return;
+        }
+        if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+            setError('images', `"${file.name}" format tidak didukung.`);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = ev => {
+            imageItems.value.push({ file, preview: ev.target?.result as string });
+            // Sync ke form
+            form.images = imageItems.value.map(i => i.file);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Reset input supaya bisa pilih file yang sama lagi
+    if (imagesInputRef.value) imagesInputRef.value.value = '';
+};
+
+const removeImageItem = (index: number) => {
+    imageItems.value.splice(index, 1);
+    form.images = imageItems.value.map(i => i.file);
+    delete localErrors.value['images'];
+};
+
+// ── Tanggal Publikasi ─────────────────────────────────────────────
 const tanggalValue = ref<Date | null>(null);
 const showCalendar = ref(false);
 
@@ -120,7 +172,6 @@ const formatDisplay = (date: Date | null): string => {
 };
 
 const onSelectTanggal = (day: any) => {
-    // Tolak jika pilih hari lampau (defense in depth, karena min-date sudah handle di UI)
     const picked = new Date(day.date); picked.setHours(0, 0, 0, 0);
     if (picked < today) return;
     tanggalValue.value     = day.date;
@@ -130,7 +181,7 @@ const onSelectTanggal = (day: any) => {
 };
 
 const clearTanggal = () => {
-    if (form.status === 'publish') return; // publish tidak bisa di-clear
+    if (form.status === 'publish') return;
     tanggalValue.value     = null;
     form.tanggal_publikasi = '';
 };
@@ -157,7 +208,12 @@ const handleSubmit = () => {
     if (!form.kategori.trim()) { setError('kategori', 'Kategori wajib diisi'); valid = false; }
     if (!form.status)          { setError('status',   'Status wajib dipilih'); valid = false; }
     if (!valid) return;
-    form.post('/admin/berita');
+
+    // useForm transform untuk kirim images[] sebagai array file
+    form.transform((data) => ({
+        ...data,
+        images: imageItems.value.map(i => i.file),
+    })).post('/admin/berita');
 };
 </script>
 
@@ -269,16 +325,12 @@ const handleSubmit = () => {
                                         <span v-if="form.status === 'publish'" class="text-xs font-normal text-gray-400 ml-1">(otomatis hari ini, tidak dapat diubah)</span>
                                         <span v-else class="text-xs font-normal text-gray-400 ml-1">(opsional — hanya tanggal hari ini atau mendatang)</span>
                                     </label>
-
-                                    <!-- ── PUBLISH: readonly ─────────────────── -->
                                     <div v-if="form.status === 'publish'"
                                         class="flex items-center gap-3 rounded-xl border-0 bg-gray-100 py-3 px-4 ring-1 ring-inset ring-gray-200 cursor-not-allowed dark:bg-gray-800 dark:ring-gray-700">
                                         <span v-html="CalendarIcon()" class="text-gray-400 flex-shrink-0"></span>
                                         <span class="flex-1 text-sm font-medium text-gray-700 dark:text-white">{{ formatDisplay(today) }}</span>
-                                        <span v-html="LockIcon()" class="text-gray-400 flex-shrink-0" title="Tanggal dikunci otomatis saat publish"></span>
+                                        <span v-html="LockIcon()" class="text-gray-400 flex-shrink-0"></span>
                                     </div>
-
-                                    <!-- ── DRAFT: kalender dengan min-date hari ini ── -->
                                     <div v-else class="flex items-center gap-2">
                                         <div class="relative flex-1">
                                             <button type="button" @click="showCalendar = !showCalendar; closeKategoriDropdown()"
@@ -290,14 +342,7 @@ const handleSubmit = () => {
                                                 <span v-html="ChevronDownIcon()" class="text-gray-400 flex-shrink-0 transition-transform" :class="showCalendar ? 'rotate-180' : ''"></span>
                                             </button>
                                             <div v-if="showCalendar" class="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
-                                                <!-- min-date menonaktifkan semua tanggal sebelum hari ini di UI kalender -->
-                                                <DatePicker
-                                                    v-model="tanggalValue"
-                                                    @dayclick="onSelectTanggal"
-                                                    color="blue"
-                                                    is-expanded
-                                                    :min-date="today"
-                                                    class="rounded-2xl" />
+                                                <DatePicker v-model="tanggalValue" @dayclick="onSelectTanggal" color="blue" is-expanded :min-date="today" class="rounded-2xl" />
                                             </div>
                                         </div>
                                         <button v-if="tanggalValue" type="button" @click="clearTanggal"
@@ -305,19 +350,11 @@ const handleSubmit = () => {
                                             <span v-html="XMarkIcon()"></span>
                                         </button>
                                     </div>
-
-                                    <!-- Info box -->
-                                    <div :class="{
-                                            'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800': infoStatusTanggal.type === 'success',
-                                            'bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800':   infoStatusTanggal.type === 'info',
-                                         }"
+                                    <div :class="{ 'bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800': infoStatusTanggal.type === 'success', 'bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800': infoStatusTanggal.type === 'info' }"
                                         class="flex items-center gap-2 rounded-lg border px-3 py-2">
                                         <svg v-if="infoStatusTanggal.type === 'success'" class="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                         <svg v-else class="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        <p class="text-xs" :class="{
-                                            'text-green-700 dark:text-green-300': infoStatusTanggal.type === 'success',
-                                            'text-blue-700 dark:text-blue-300':   infoStatusTanggal.type === 'info',
-                                        }">{{ infoStatusTanggal.msg }}</p>
+                                        <p class="text-xs" :class="{ 'text-green-700 dark:text-green-300': infoStatusTanggal.type === 'success', 'text-blue-700 dark:text-blue-300': infoStatusTanggal.type === 'info' }">{{ infoStatusTanggal.msg }}</p>
                                     </div>
                                 </div>
 
@@ -326,19 +363,24 @@ const handleSubmit = () => {
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                         Isi Berita <span class="text-red-500">*</span>
                                     </label>
-                                    <textarea v-model="form.isi" @input="delete localErrors['isi']" rows="8"
+                                    <RichTextEditor
+                                        v-model="form.isi"
+                                        :has-error="!!(localErrors.isi || form.errors.isi)"
                                         placeholder="Tulis isi berita dengan lengkap dan jelas..."
-                                        :class="localErrors.isi || form.errors.isi ? 'ring-red-400 focus:ring-red-500' : 'ring-gray-200 focus:ring-blue-600'"
-                                        class="block w-full rounded-xl border-0 bg-gray-50 py-3 px-4 text-sm text-gray-900 ring-1 ring-inset placeholder:text-gray-400 focus:bg-white focus:ring-2 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:placeholder:text-gray-500 dark:focus:bg-gray-700 resize-none"></textarea>
+                                        @update:modelValue="delete localErrors['isi']"
+                                    />
                                     <p v-if="localErrors.isi || form.errors.isi" class="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
                                         <span v-html="ErrIcon()"></span>{{ localErrors.isi || form.errors.isi }}
                                     </p>
                                 </div>
                             </div>
 
-                            <!-- Foto Berita -->
+                            <!-- ── FOTO UTAMA ── -->
                             <div class="space-y-1.5">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Foto Berita</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Foto Utama
+                                    <span class="text-xs font-normal text-gray-400 ml-1">(digunakan sebagai cover/thumbnail)</span>
+                                </label>
                                 <div v-if="imagePreview" class="flex items-center gap-4">
                                     <img :src="imagePreview" alt="Preview foto"
                                         class="h-20 w-32 rounded-xl border border-gray-200 bg-gray-50 object-cover ring-1 ring-black/5 dark:border-gray-700 dark:bg-gray-800 dark:ring-white/10" />
@@ -347,7 +389,7 @@ const handleSubmit = () => {
                                         <div class="flex items-center gap-3">
                                             <label for="foto-input" class="text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer dark:text-blue-400 dark:hover:text-blue-300">Ganti foto</label>
                                             <span class="text-gray-300 dark:text-gray-600">|</span>
-                                            <button type="button" @click="removeFoto" class="text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">Hapus foto</button>
+                                            <button type="button" @click="removeFoto" class="text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">Hapus</button>
                                         </div>
                                     </div>
                                 </div>
@@ -355,8 +397,8 @@ const handleSubmit = () => {
                                     class="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-6 py-8 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-700 dark:hover:bg-blue-900/10">
                                     <svg class="w-8 h-8 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
                                     <div class="text-center">
-                                        <p class="text-sm font-medium text-blue-600 dark:text-blue-400">Klik untuk upload</p>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, JPEG, PNG maksimal 2MB</p>
+                                        <p class="text-sm font-medium text-blue-600 dark:text-blue-400">Klik untuk upload foto utama</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">JPG, JPEG, PNG · Maks. 2MB</p>
                                     </div>
                                 </label>
                                 <input id="foto-input" ref="fileInputRef" type="file" accept="image/jpeg,image/jpg,image/png" class="hidden" @change="onFotoChange" />
@@ -364,6 +406,72 @@ const handleSubmit = () => {
                                     <span v-html="ErrIcon()"></span>{{ localErrors.foto || form.errors.foto }}
                                 </p>
                             </div>
+
+                            <!-- ── FOTO TAMBAHAN ── -->
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Foto Tambahan
+                                            <span class="text-xs font-normal text-gray-400 ml-1">(opsional, tampil sebagai galeri di detail berita)</span>
+                                        </label>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                            {{ imageItems.length }}/{{ MAX_IMAGES }} foto · JPG, JPEG, PNG · Maks. 2MB per foto
+                                        </p>
+                                    </div>
+                                    <label v-if="imageItems.length < MAX_IMAGES" for="images-input"
+                                        class="inline-flex items-center gap-2 cursor-pointer rounded-xl bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors">
+                                        <span v-html="PhotoIcon()"></span>
+                                        Tambah Foto
+                                    </label>
+                                </div>
+
+                                <!-- Grid preview foto tambahan -->
+                                <div v-if="imageItems.length > 0"
+                                    class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                    <div v-for="(item, index) in imageItems" :key="index"
+                                        class="group relative rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 aspect-square">
+                                        <img :src="item.preview" :alt="`Foto ${index + 1}`"
+                                            class="w-full h-full object-cover" />
+                                        <!-- Overlay hapus -->
+                                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                                            <button type="button" @click="removeImageItem(index)"
+                                                class="opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg">
+                                                <span v-html="XMarkIcon()"></span>
+                                            </button>
+                                        </div>
+                                        <!-- Nomor urut -->
+                                        <div class="absolute top-1.5 left-1.5 bg-black/60 text-white text-xs font-bold rounded-md px-1.5 py-0.5">
+                                            {{ index + 1 }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Tombol tambah inline di grid -->
+                                    <label v-if="imageItems.length < MAX_IMAGES" for="images-input"
+                                        class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 aspect-square cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 dark:hover:border-blue-700 dark:hover:bg-blue-900/10 transition-colors">
+                                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400">Tambah</span>
+                                    </label>
+                                </div>
+
+                                <!-- Empty state -->
+                                <label v-else for="images-input"
+                                    class="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-6 py-8 cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-colors dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-700 dark:hover:bg-blue-900/10">
+                                    <svg class="w-8 h-8 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 0 1-1.125-1.125v-3.75ZM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 0 1-1.125-1.125v-8.25ZM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 0 1-1.125-1.125v-2.25Z" /></svg>
+                                    <div class="text-center">
+                                        <p class="text-sm font-medium text-blue-600 dark:text-blue-400">Klik untuk upload foto tambahan</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Bisa pilih beberapa foto sekaligus · Maks. {{ MAX_IMAGES }} foto</p>
+                                    </div>
+                                </label>
+
+                                <input id="images-input" ref="imagesInputRef" type="file"
+                                    accept="image/jpeg,image/jpg,image/png"
+                                    multiple class="hidden" @change="onImagesChange" />
+                                <p v-if="localErrors.images || form.errors['images.0']" class="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
+                                    <span v-html="ErrIcon()"></span>{{ localErrors.images || form.errors['images.0'] }}
+                                </p>
+                            </div>
+
                         </div>
 
                         <!-- Actions -->

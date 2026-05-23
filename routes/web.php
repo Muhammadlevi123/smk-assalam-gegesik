@@ -34,16 +34,17 @@ Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified', 'role:user'])->name('user.dashboard');
 
-
 Route::get('admin/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified', 'role:admin'])
     ->name('admin.dashboard');
 
 // ─── Profil Sekolah ───────────────────────────────
 Route::prefix('profil')->name('profil.')->group(function () {
-    Route::get('/sejarah',         [LandingPageController::class, 'sejarah'])       ->name('sejarah');
-    Route::get('/visi-misi',       [LandingPageController::class, 'visiMisi'])       ->name('visi-misi');
-    Route::get('/tenaga-pendidik', [LandingPageController::class, 'tenagaPendidik'])->name('tenaga-pendidik');
+    Route::get('/sejarah',            [LandingPageController::class, 'sejarah'])           ->name('sejarah');
+    Route::get('/visi-misi',          [LandingPageController::class, 'visiMisi'])           ->name('visi-misi');
+    Route::get('/tenaga-pendidik',    [LandingPageController::class, 'tenagaPendidik'])     ->name('tenaga-pendidik');
+    // ── Organisasi / Ekskul detail (publik) ──
+    Route::get('/organisasi/{slug}',  [LandingPageController::class, 'organisasiDetail'])   ->name('organisasi.detail');
 });
 
 // ─── Informasi ────────────────────────────────────

@@ -10,9 +10,11 @@ class Organisasi extends Model
 
     protected $fillable = [
         'nama',
+        'slug',
         'jenis',
         'deskripsi',
+        'pembina',
+        'jadwal_latihan',
         'logo',
     ];
-
 }

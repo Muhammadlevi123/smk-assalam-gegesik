@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 
 class OrganisasiController extends Controller
@@ -24,6 +25,9 @@ class OrganisasiController extends Controller
             ->toArray();
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // INDEX
+    // ──────────────────────────────────────────────────────────────
     public function index(Request $request): Response
     {
         $query = Organisasi::query();
@@ -31,9 +35,10 @@ class OrganisasiController extends Controller
         if ($request->filled('search')) {
             $search = $request->get('search');
             $query->where(function ($q) use ($search) {
-                $q->where('nama', 'LIKE', "%{$search}%")
-                  ->orWhere('jenis', 'LIKE', "%{$search}%")
-                  ->orWhere('deskripsi', 'LIKE', "%{$search}%");
+                $q->where('nama',     'LIKE', "%{$search}%")
+                  ->orWhere('jenis',  'LIKE', "%{$search}%")
+                  ->orWhere('deskripsi', 'LIKE', "%{$search}%")
+                  ->orWhere('pembina', 'LIKE', "%{$search}%");
             });
         }
 
@@ -58,6 +63,9 @@ class OrganisasiController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // CREATE
+    // ──────────────────────────────────────────────────────────────
     public function create(): Response
     {
         return Inertia::render('admin/organisasi/Create', [
@@ -65,18 +73,32 @@ class OrganisasiController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // STORE
+    // ──────────────────────────────────────────────────────────────
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'nama'      => 'required|string|max:255',
-            'jenis'     => 'required|string|max:255',
-            'deskripsi' => 'nullable|string|max:1000',
-            'logo'      => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
+            'nama'           => 'required|string|max:255',
+            'jenis'          => 'required|string|max:255',
+            'deskripsi'      => 'nullable|string|max:2000',
+            'pembina'        => 'nullable|string|max:255',
+            'jadwal_latihan' => 'nullable|string|max:1000',
+            'logo'           => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
         ]);
 
         if ($request->hasFile('logo')) {
             $validated['logo'] = $request->file('logo')->store('img/organisasi', 'public');
         }
+
+        // Generate slug unik dari nama
+        $slug = Str::slug($validated['nama']);
+        $original = $slug;
+        $count = 1;
+        while (Organisasi::where('slug', $slug)->exists()) {
+            $slug = $original . '-' . $count++;
+        }
+        $validated['slug'] = $slug;
 
         Organisasi::create($validated);
 
@@ -84,6 +106,9 @@ class OrganisasiController extends Controller
                          ->with('success', 'created');
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // SHOW
+    // ──────────────────────────────────────────────────────────────
     public function show(string $id): Response
     {
         $organisasi = Organisasi::findOrFail($id);
@@ -93,6 +118,9 @@ class OrganisasiController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // EDIT
+    // ──────────────────────────────────────────────────────────────
     public function edit(string $id): Response
     {
         $organisasi = Organisasi::findOrFail($id);
@@ -103,16 +131,21 @@ class OrganisasiController extends Controller
         ]);
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // UPDATE
+    // ──────────────────────────────────────────────────────────────
     public function update(Request $request, string $id): RedirectResponse
     {
         $organisasi = Organisasi::findOrFail($id);
 
         $validated = $request->validate([
-            'nama'        => 'required|string|max:255',
-            'jenis'       => 'required|string|max:255',
-            'deskripsi'   => 'nullable|string|max:1000',
-            'logo'        => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
-            'remove_logo' => 'nullable|in:0,1',
+            'nama'           => 'required|string|max:255',
+            'jenis'          => 'required|string|max:255',
+            'deskripsi'      => 'nullable|string|max:2000',
+            'pembina'        => 'nullable|string|max:255',
+            'jadwal_latihan' => 'nullable|string|max:1000',
+            'logo'           => 'nullable|image|mimes:jpeg,png,jpg,svg|max:2048',
+            'remove_logo'    => 'nullable|in:0,1',
         ]);
 
         if ($request->hasFile('logo')) {
@@ -134,8 +167,18 @@ class OrganisasiController extends Controller
             unset($validated['logo']);
         }
 
-        // Jangan simpan remove_logo ke database
         unset($validated['remove_logo']);
+
+        // Regenerate slug jika nama berubah
+        if ($validated['nama'] !== $organisasi->nama) {
+            $slug = Str::slug($validated['nama']);
+            $original = $slug;
+            $count = 1;
+            while (Organisasi::where('slug', $slug)->where('id', '!=', $organisasi->id)->exists()) {
+                $slug = $original . '-' . $count++;
+            }
+            $validated['slug'] = $slug;
+        }
 
         $organisasi->update($validated);
 
@@ -143,6 +186,9 @@ class OrganisasiController extends Controller
                          ->with('success', 'updated');
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // DESTROY
+    // ──────────────────────────────────────────────────────────────
     public function destroy(string $id): RedirectResponse
     {
         $organisasi = Organisasi::findOrFail($id);

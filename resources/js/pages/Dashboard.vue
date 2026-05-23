@@ -31,6 +31,7 @@ interface Berita {
 }
 interface Ekstrakurikuler {
     id: number;
+    slug: string;
     nama: string;
     type: string;
     jenis: string;
@@ -604,7 +605,7 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
         <!-- ════════════════════════════════════════════
              EKSTRAKURIKULER — Pakai logo dari DB
         ═════════════════════════════════════════════ -->
-        <section class="ekskur-section">
+         <section class="ekskur-section">
             <div class="section-container">
                 <div class="section-header reveal-up">
                     <div class="section-label">Lingkungan Sekolah</div>
@@ -614,10 +615,11 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
                 </div>
 
                 <div v-if="ekstrakurikuler && ekstrakurikuler.length > 0" class="ekskur-grid stagger-children">
-                    <div
+                    <Link
                         v-for="(item, index) in ekstrakurikuler"
                         :key="item.id"
-                        class="ekskur-card stagger-item"
+                        :href="`/profil/organisasi/${item.slug}`"
+                        class="ekskur-card ekskur-card-link stagger-item"
                         :style="{ '--ekskur-color': getEkskurColor(index), '--stagger-i': index }"
                     >
                         <div class="ekskur-top">
@@ -638,7 +640,16 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
                                 {{ item.deskripsi || 'Deskripsi kegiatan ekstrakurikuler ini akan segera tersedia.' }}
                             </p>
                         </div>
-                    </div>
+                        <!-- Indikator klik -->
+                        <div class="ekskur-footer">
+                            <span class="ekskur-link">
+                                Lihat Detail
+                                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </Link>
                 </div>
 
                 <div v-else class="empty-state reveal">
@@ -1771,6 +1782,35 @@ const getEkskurColor = (index: number) => ekskurPalette[index % ekskurPalette.le
 /* Ekskul stagger: baris pertama cepat, baris berikutnya mulai setelah baris satu */
 .ekskur-grid .stagger-item {
     transition-delay: calc(var(--stagger-i, 0) * 75ms);
+}
+
+.ekskur-card-link {
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+}
+.ekskur-card-link:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+}
+.ekskur-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--gray-100);
+    margin-top: auto;
+}
+.ekskur-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ekskur-color, var(--green-600));
+    text-decoration: none;
+    transition: gap var(--transition);
+}
+.ekskur-card-link:hover .ekskur-link {
+    gap: 8px;
 }
 
 </style>
