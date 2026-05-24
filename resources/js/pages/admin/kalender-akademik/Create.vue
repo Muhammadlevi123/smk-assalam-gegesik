@@ -6,15 +6,8 @@ import { DatePicker } from 'v-calendar';
 import 'v-calendar/style.css';
 import { type BreadcrumbItem } from '../../../types';
 
-const ArrowLeftIcon = () => `
-<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-</svg>`;
-
-const SaveIcon = () => `
-<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-</svg>`;
+const ArrowLeftIcon = () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>`;
+const SaveIcon      = () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>`;
 
 interface TahunAjaranOption {
     value: number;
@@ -23,17 +16,16 @@ interface TahunAjaranOption {
 
 interface Props {
     tahunAjaranList: TahunAjaranOption[];
-    tahunAktifId: number | null;
-    // ✅ Tambah previous_url
-    previous_url: string;
+    tahunAktifId:    number | null;
+    previous_url:    string;
 }
 
 const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: '/admin/dashboard' },
-    { title: 'Kalender Akademik', href: '/admin/kalender-akademik' },
-    { title: 'Tambah Agenda', href: '/admin/kalender-akademik/create' },
+    { title: 'Dashboard',          href: '/admin/dashboard' },
+    { title: 'Kalender Akademik',  href: '/admin/kalender-akademik' },
+    { title: 'Tambah Agenda',      href: '/admin/kalender-akademik/create' },
 ];
 
 const form = useForm({
@@ -41,12 +33,12 @@ const form = useForm({
     tahun_ajaran_id: props.tahunAktifId ?? '',
     tanggal_mulai:   '',
     tanggal_selesai: '',
-    // ✅ previous_url ikut dikirim ke controller saat submit
+    include_weekend: false,
     previous_url:    props.previous_url,
 });
 
-const tanggalMulai    = ref<Date | null>(null);
-const tanggalSelesai  = ref<Date | null>(null);
+const tanggalMulai        = ref<Date | null>(null);
+const tanggalSelesai      = ref<Date | null>(null);
 const showCalendarMulai   = ref(false);
 const showCalendarSelesai = ref(false);
 
@@ -55,9 +47,7 @@ const formatDisplay = (date: Date | null): string => {
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-const toInputFormat = (date: Date): string => {
-    return date.toISOString().split('T')[0];
-};
+const toInputFormat = (date: Date): string => date.toISOString().split('T')[0];
 
 const onSelectMulai = (day: any) => {
     tanggalMulai.value      = day.date;
@@ -80,25 +70,18 @@ const closeAll = () => {
     showCalendarSelesai.value = false;
 };
 
-const submit = () => {
-    form.post('/admin/kalender-akademik');
-};
+const submit = () => { form.post('/admin/kalender-akademik'); };
 </script>
 
 <template>
     <Head title="Tambah Agenda Kalender" />
-
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="bg-gray-50/50 dark:bg-gray-950/50 min-h-screen">
             <div class="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
 
                 <div class="space-y-2">
-                    <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-                        Tambah Agenda Kalender
-                    </h1>
-                    <p class="text-base text-gray-600 dark:text-gray-400">
-                        Tambahkan agenda atau kegiatan akademik ke dalam kalender sekolah
-                    </p>
+                    <h1 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Tambah Agenda Kalender</h1>
+                    <p class="text-base text-gray-600 dark:text-gray-400">Tambahkan agenda atau kegiatan akademik ke dalam kalender sekolah</p>
                 </div>
 
                 <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -197,6 +180,33 @@ const submit = () => {
                                 </div>
                             </div>
 
+                            <!-- ✅ Checkbox Include Weekend -->
+                            <div class="max-w-2xl">
+                                <label class="flex items-start gap-3 cursor-pointer group">
+                                    <div class="relative mt-0.5 flex-shrink-0">
+                                        <input
+                                            type="checkbox"
+                                            v-model="form.include_weekend"
+                                            class="sr-only peer"
+                                        />
+                                        <div class="w-5 h-5 rounded border-2 border-gray-300 bg-white peer-checked:bg-blue-600 peer-checked:border-blue-600 dark:border-gray-600 dark:bg-gray-800 transition-colors flex items-center justify-center">
+                                            <svg v-if="form.include_weekend" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                            Tandai Sabtu &amp; Minggu di kalender
+                                        </p>
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                            Jika dicentang, Sabtu dan Minggu dalam rentang tanggal ini ikut ditandai.
+                                            Jika tidak, hanya hari Senin–Jumat yang ditampilkan.
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+
                         </div>
 
                         <div class="mt-8 flex items-center gap-4 border-t border-gray-100 pt-6 dark:border-gray-800">
@@ -209,7 +219,6 @@ const submit = () => {
                                 </svg>
                                 {{ form.processing ? 'Menyimpan...' : 'Simpan Agenda' }}
                             </button>
-                            <!-- ✅ Diubah dari href hardcode ke :href="previous_url" -->
                             <Link :href="previous_url"
                                 class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-8 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-900">
                                 <span v-html="ArrowLeftIcon()"></span>

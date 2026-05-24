@@ -184,7 +184,7 @@ onMounted(() => {
 .article-header { margin-bottom: 32px; }
 .article-line { width: 40px; height: 3px; background: var(--green-600); border-radius: 2px; margin-bottom: 16px; }
 .article-title { font-family: var(--font-display); font-size: clamp(22px, 3.5vw, 34px); font-weight: 700; color: var(--gray-900); line-height: 1.2; margin: 0 0 8px; }
-.article-subtitle { font-size: 14px; color: var(--gray-400); font-style: italic; margin: 0; }
+.article-subtitle { font-size: 14px; color: var(--gray-400); margin: 0; }
 
 /* BODY */
 .article-body { display: flex; flex-direction: column; gap: 28px; }

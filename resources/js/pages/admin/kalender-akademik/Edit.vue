@@ -6,15 +6,8 @@ import { DatePicker } from 'v-calendar';
 import 'v-calendar/style.css';
 import { type BreadcrumbItem } from '../../../types';
 
-const ArrowLeftIcon = () => `
-<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-</svg>`;
-
-const SaveIcon = () => `
-<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-</svg>`;
+const ArrowLeftIcon = () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>`;
+const SaveIcon      = () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>`;
 
 interface TahunAjaranOption {
     value: number;
@@ -22,29 +15,29 @@ interface TahunAjaranOption {
 }
 
 interface KalenderAkademik {
-    id: number;
-    judul: string;
-    tanggal_mulai: string;
+    id:              number;
+    judul:           string;
+    tanggal_mulai:   string;
     tanggal_selesai: string;
     tahun_ajaran_id: number;
-    tahun_ajaran?: { id: number; tahun: string };
-    created_at: string;
-    updated_at: string;
+    include_weekend: boolean;
+    tahun_ajaran?:   { id: number; tahun: string };
+    created_at:      string;
+    updated_at:      string;
 }
 
 interface Props {
     kalenderAkademik: KalenderAkademik;
-    tahunAjaranList: TahunAjaranOption[];
-    // ✅ Tambah previous_url
-    previous_url: string;
+    tahunAjaranList:  TahunAjaranOption[];
+    previous_url:     string;
 }
 
 const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: '/admin/dashboard' },
+    { title: 'Dashboard',         href: '/admin/dashboard' },
     { title: 'Kalender Akademik', href: '/admin/kalender-akademik' },
-    { title: 'Edit Agenda', href: `/admin/kalender-akademik/${props.kalenderAkademik.id}/edit` },
+    { title: 'Edit Agenda',       href: `/admin/kalender-akademik/${props.kalenderAkademik.id}/edit` },
 ];
 
 const form = useForm({
@@ -52,7 +45,7 @@ const form = useForm({
     tahun_ajaran_id: Number(props.kalenderAkademik.tahun_ajaran_id),
     tanggal_mulai:   props.kalenderAkademik.tanggal_mulai,
     tanggal_selesai: props.kalenderAkademik.tanggal_selesai,
-    // ✅ previous_url ikut dikirim ke controller saat submit
+    include_weekend: props.kalenderAkademik.include_weekend ?? false,
     previous_url:    props.previous_url,
 });
 
@@ -71,9 +64,7 @@ const formatDisplay = (date: Date | null): string => {
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-const toInputFormat = (date: Date): string => {
-    return date.toISOString().split('T')[0];
-};
+const toInputFormat = (date: Date): string => date.toISOString().split('T')[0];
 
 const onSelectMulai = (day: any) => {
     tanggalMulai.value      = day.date;
@@ -100,29 +91,20 @@ const hasChanges = computed(() => {
     return form.judul           !== props.kalenderAkademik.judul
         || form.tahun_ajaran_id !== Number(props.kalenderAkademik.tahun_ajaran_id)
         || form.tanggal_mulai   !== props.kalenderAkademik.tanggal_mulai
-        || form.tanggal_selesai !== props.kalenderAkademik.tanggal_selesai;
+        || form.tanggal_selesai !== props.kalenderAkademik.tanggal_selesai
+        || form.include_weekend !== (props.kalenderAkademik.include_weekend ?? false);
 });
 
 const submit = () => {
     form.put(`/admin/kalender-akademik/${props.kalenderAkademik.id}`);
 };
 
-const formatDateOnly = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-        year: 'numeric', month: 'long', day: 'numeric'
-    });
-};
-
-const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-};
+const formatDateOnly = (d: string) => new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+const formatDate     = (d: string) => new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 </script>
 
 <template>
     <Head :title="`Edit Agenda - ${kalenderAkademik.judul}`" />
-
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="bg-gray-50/50 dark:bg-gray-950/50 min-h-screen">
             <div class="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
@@ -151,9 +133,14 @@ const formatDate = (dateString: string): string => {
                                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
                                     Tahun Ajaran: {{ kalenderAkademik.tahun_ajaran?.tahun ?? '-' }}
                                 </p>
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                                    Dibuat: {{ formatDate(kalenderAkademik.created_at) }}
-                                </p>
+                                <div class="mt-1 flex items-center gap-1.5">
+                                    <span class="text-xs text-gray-400 dark:text-gray-500">Sabtu & Minggu:</span>
+                                    <span :class="kalenderAkademik.include_weekend ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'"
+                                        class="text-xs font-medium">
+                                        {{ kalenderAkademik.include_weekend ? 'Ditandai' : 'Tidak ditandai' }}
+                                    </span>
+                                </div>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Dibuat: {{ formatDate(kalenderAkademik.created_at) }}</p>
                             </div>
 
                             <!-- Judul -->
@@ -176,9 +163,7 @@ const formatDate = (dateString: string): string => {
                                     <select id="tahun_ajaran" v-model="form.tahun_ajaran_id"
                                         class="block w-full appearance-none rounded-xl border-0 bg-gray-50 py-3 pl-4 pr-10 text-gray-900 ring-1 ring-inset ring-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:focus:bg-gray-700 dark:focus:ring-blue-500">
                                         <option value="" disabled>Pilih tahun ajaran</option>
-                                        <option v-for="tahun in tahunAjaranList" :key="tahun.value" :value="Number(tahun.value)">
-                                            {{ tahun.label }}
-                                        </option>
+                                        <option v-for="tahun in tahunAjaranList" :key="tahun.value" :value="Number(tahun.value)">{{ tahun.label }}</option>
                                     </select>
                                     <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                         <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,7 +176,6 @@ const formatDate = (dateString: string): string => {
 
                             <!-- Tanggal -->
                             <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 max-w-2xl">
-
                                 <!-- Tanggal Mulai -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -211,8 +195,7 @@ const formatDate = (dateString: string): string => {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                                             </svg>
                                         </button>
-                                        <div v-if="showCalendarMulai"
-                                            class="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                                        <div v-if="showCalendarMulai" class="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
                                             <DatePicker v-model="tanggalMulai" @dayclick="onSelectMulai" color="blue" is-expanded class="rounded-2xl" />
                                         </div>
                                     </div>
@@ -238,14 +221,36 @@ const formatDate = (dateString: string): string => {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                                             </svg>
                                         </button>
-                                        <div v-if="showCalendarSelesai"
-                                            class="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                                        <div v-if="showCalendarSelesai" class="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
                                             <DatePicker v-model="tanggalSelesai" @dayclick="onSelectSelesai" :min-date="tanggalMulai ?? undefined" color="blue" is-expanded class="rounded-2xl" />
                                         </div>
                                     </div>
                                     <p v-if="!tanggalMulai" class="mt-1.5 text-xs text-gray-400 dark:text-gray-500">Pilih tanggal mulai terlebih dahulu</p>
                                     <div v-if="form.errors.tanggal_selesai" class="mt-1.5 text-sm text-red-600 dark:text-red-400">{{ form.errors.tanggal_selesai }}</div>
                                 </div>
+                            </div>
+
+                            <!-- ✅ Checkbox Include Weekend -->
+                            <div class="max-w-2xl">
+                                <label class="flex items-start gap-3 cursor-pointer group">
+                                    <div class="relative mt-0.5 flex-shrink-0">
+                                        <input type="checkbox" v-model="form.include_weekend" class="sr-only peer" />
+                                        <div class="w-5 h-5 rounded border-2 border-gray-300 bg-white peer-checked:bg-blue-600 peer-checked:border-blue-600 dark:border-gray-600 dark:bg-gray-800 transition-colors flex items-center justify-center">
+                                            <svg v-if="form.include_weekend" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">
+                                            Tandai Sabtu &amp; Minggu di kalender
+                                        </p>
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                            Jika dicentang, Sabtu dan Minggu dalam rentang tanggal ini ikut ditandai.
+                                            Jika tidak, hanya hari Senin–Jumat yang ditampilkan.
+                                        </p>
+                                    </div>
+                                </label>
                             </div>
 
                             <!-- Changes Indicator -->
@@ -268,7 +273,6 @@ const formatDate = (dateString: string): string => {
                                 </svg>
                                 {{ form.processing ? 'Memperbarui...' : 'Perbarui Agenda' }}
                             </button>
-                            <!-- ✅ Diubah dari href hardcode ke :href="previous_url" -->
                             <Link :href="previous_url"
                                 class="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-8 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-900">
                                 <span v-html="ArrowLeftIcon()"></span>

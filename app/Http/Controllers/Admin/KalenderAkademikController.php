@@ -62,7 +62,6 @@ class KalenderAkademikController extends Controller
         return Inertia::render('admin/kalender-akademik/Create', [
             'tahunAjaranList' => $tahunAjaranList,
             'tahunAktifId'    => $tahunAktif?->id,
-            // ✅ Tambah previous_url agar setelah store balik ke halaman yang sama (termasuk ?page=X&tahun_ajaran_id=X)
             'previous_url'    => url()->previous(route('admin.kalender-akademik.index')),
         ]);
     }
@@ -74,7 +73,7 @@ class KalenderAkademikController extends Controller
             'tanggal_mulai'   => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'tahun_ajaran_id' => 'required|exists:tahun_ajaran,id',
-            // ✅ Terima previous_url dari form
+            'include_weekend' => 'boolean',
             'previous_url'    => 'nullable|string',
         ]);
 
@@ -83,9 +82,9 @@ class KalenderAkademikController extends Controller
             'tanggal_mulai'   => $validated['tanggal_mulai'],
             'tanggal_selesai' => $validated['tanggal_selesai'],
             'tahun_ajaran_id' => $validated['tahun_ajaran_id'],
+            'include_weekend' => $validated['include_weekend'] ?? false,
         ]);
 
-        // ✅ Redirect ke previous_url (mempertahankan ?page=X&tahun_ajaran_id=X) atau fallback ke index
         $redirectTo = $validated['previous_url'] ?? route('admin.kalender-akademik.index');
 
         return redirect($redirectTo)->with('success', 'created');
@@ -112,7 +111,6 @@ class KalenderAkademikController extends Controller
         return Inertia::render('admin/kalender-akademik/Edit', [
             'kalenderAkademik' => $kalenderAkademik,
             'tahunAjaranList'  => $tahunAjaranList,
-            // ✅ Tambah previous_url agar setelah update balik ke halaman yang sama (termasuk ?page=X&tahun_ajaran_id=X)
             'previous_url'     => url()->previous(route('admin.kalender-akademik.index')),
         ]);
     }
@@ -124,7 +122,7 @@ class KalenderAkademikController extends Controller
             'tanggal_mulai'   => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'tahun_ajaran_id' => 'required|exists:tahun_ajaran,id',
-            // ✅ Terima previous_url dari form
+            'include_weekend' => 'boolean',
             'previous_url'    => 'nullable|string',
         ]);
 
@@ -133,9 +131,9 @@ class KalenderAkademikController extends Controller
             'tanggal_mulai'   => $validated['tanggal_mulai'],
             'tanggal_selesai' => $validated['tanggal_selesai'],
             'tahun_ajaran_id' => $validated['tahun_ajaran_id'],
+            'include_weekend' => $validated['include_weekend'] ?? false,
         ]);
 
-        // ✅ Redirect ke previous_url (mempertahankan ?page=X&tahun_ajaran_id=X) atau fallback ke index
         $redirectTo = $validated['previous_url'] ?? route('admin.kalender-akademik.index');
 
         return redirect($redirectTo)->with('success', 'updated');

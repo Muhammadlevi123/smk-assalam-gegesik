@@ -14,12 +14,13 @@ class KalenderAkademik extends Model
         'tanggal_mulai',
         'tanggal_selesai',
         'tahun_ajaran_id',
+        'include_weekend',
     ];
 
-    // ✅ Hapus format Y-m-d, samakan dengan TahunAjaran
     protected $casts = [
         'tanggal_mulai'   => 'date',
         'tanggal_selesai' => 'date',
+        'include_weekend' => 'boolean',
     ];
 
     public function tahunAjaran(): BelongsTo

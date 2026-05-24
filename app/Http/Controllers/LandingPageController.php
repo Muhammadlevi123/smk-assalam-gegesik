@@ -82,8 +82,18 @@ class LandingPageController extends Controller
     // =====================================================
     public function index()
     {
-        $tahunAjaranTerbaru = TahunAjaran::getAktif()
-            ?? TahunAjaran::orderBy('created_at', 'desc')->first();
+        $today = Carbon::today();
+
+        // Prioritas: sedang berjalan → akan datang → kosong
+        $tahunAjaranTerbaru = TahunAjaran::whereDate('tanggal_mulai', '<=', $today)
+            ->whereDate('tanggal_selesai', '>=', $today)
+            ->first();
+
+        if (!$tahunAjaranTerbaru) {
+            $tahunAjaranTerbaru = TahunAjaran::whereDate('tanggal_mulai', '>', $today)
+                ->orderBy('tanggal_mulai', 'asc')
+                ->first();
+        }
 
         $guru = collect();
         if ($tahunAjaranTerbaru) {
@@ -243,18 +253,44 @@ class LandingPageController extends Controller
 
     // =====================================================
     // TENAGA PENDIDIK & KEPENDIDIKAN
+    // Prioritas: berjalan → akan datang → terbaru
     // =====================================================
     public function tenagaPendidik()
     {
-        $tahunAjaranTerbaru = TahunAjaran::getAktif()
-            ?? TahunAjaran::orderBy('created_at', 'desc')->first();
+        $today = Carbon::today();
+
+        // 1. Cari yang sedang berjalan
+        $tahunAjaran = TahunAjaran::whereDate('tanggal_mulai', '<=', $today)
+            ->whereDate('tanggal_selesai', '>=', $today)
+            ->first();
+
+        // 2. Jika tidak ada yang berjalan, cari yang akan datang (terdekat)
+        if (!$tahunAjaran) {
+            $tahunAjaran = TahunAjaran::whereDate('tanggal_mulai', '>', $today)
+                ->orderBy('tanggal_mulai', 'asc')
+                ->first();
+        }
+
+        // Tentukan status untuk ditampilkan di frontend
+        $statusTahunAjaran = 'tidak ada';
+        if ($tahunAjaran) {
+            $mulai   = Carbon::parse($tahunAjaran->tanggal_mulai)->startOfDay();
+            $selesai = Carbon::parse($tahunAjaran->tanggal_selesai)->endOfDay();
+            if ($today->between($mulai, $selesai)) {
+                $statusTahunAjaran = 'berjalan';
+            } elseif ($today->lt($mulai)) {
+                $statusTahunAjaran = 'akan-datang';
+            } else {
+                $statusTahunAjaran = 'selesai';
+            }
+        }
 
         $guru               = collect();
         $tenagaKependidikan = collect();
 
-        if ($tahunAjaranTerbaru) {
-            $tenagaKependidikan = TenagaKependidikan::whereHas('tahunAjaran', function ($q) use ($tahunAjaranTerbaru) {
-                $q->where('tahun_ajaran.id', $tahunAjaranTerbaru->id)
+        if ($tahunAjaran) {
+            $tenagaKependidikan = TenagaKependidikan::whereHas('tahunAjaran', function ($q) use ($tahunAjaran) {
+                $q->where('tahun_ajaran.id', $tahunAjaran->id)
                   ->where('tenaga_kependidikan_tahun_ajaran.status', 'Aktif');
             })
             ->orderBy('nama')
@@ -266,12 +302,12 @@ class LandingPageController extends Controller
                 'foto'    => $item->foto ? "/storage/{$item->foto}" : null,
             ]);
 
-            $guruData = Guru::whereHas('tahunAjaran', function ($q) use ($tahunAjaranTerbaru) {
-                $q->where('tahun_ajaran.id', $tahunAjaranTerbaru->id)
+            $guruData = Guru::whereHas('tahunAjaran', function ($q) use ($tahunAjaran) {
+                $q->where('tahun_ajaran.id', $tahunAjaran->id)
                   ->where('guru_tahun_ajaran.status', 'Aktif');
             })
-            ->with(['mataPelajaran' => function ($q) use ($tahunAjaranTerbaru) {
-                $q->wherePivot('tahun_ajaran_id', $tahunAjaranTerbaru->id);
+            ->with(['mataPelajaran' => function ($q) use ($tahunAjaran) {
+                $q->wherePivot('tahun_ajaran_id', $tahunAjaran->id);
             }])
             ->orderBy('nama')
             ->get();
@@ -286,9 +322,10 @@ class LandingPageController extends Controller
         }
 
         return Inertia::render('landing/TenagaPendidik', [
-            'tenaga_kependidikan' => $tenagaKependidikan,
-            'guru'                => $guru,
-            'tahun_ajaran'        => $tahunAjaranTerbaru?->tahun ?? '-',
+            'tenaga_kependidikan'  => $tenagaKependidikan,
+            'guru'                 => $guru,
+            'tahun_ajaran'         => $tahunAjaran?->tahun ?? '-',
+            'status_tahun_ajaran'  => $statusTahunAjaran,
         ]);
     }
 
@@ -620,6 +657,7 @@ class LandingPageController extends Controller
                             ? ' — ' . $item->tanggal_selesai->translatedFormat('d F Y')
                             : ''),
                     'bulan'           => $item->tanggal_mulai?->translatedFormat('F Y'),
+                    'include_weekend' => $item->include_weekend ?? false,
                 ]);
         }
 

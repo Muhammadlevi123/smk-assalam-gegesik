@@ -21,6 +21,7 @@ const props = defineProps<{
     guru?: Guru[];
     tenaga_kependidikan?: TenagaKependidikan[];
     tahun_ajaran?: string;
+    status_tahun_ajaran?: 'berjalan' | 'akan-datang' | 'selesai' | 'tidak ada';
 }>();
 
 const tkRows = computed(() =>
@@ -38,6 +39,26 @@ const guruRows = computed(() =>
         jabatan: g.mata_pelajaran || '-',
     }))
 );
+
+const totalPTK = computed(() => tkRows.value.length + guruRows.value.length);
+
+const statusLabel = computed(() => {
+    switch (props.status_tahun_ajaran) {
+        case 'berjalan':    return 'Sedang Berjalan';
+        case 'akan-datang': return 'Akan Datang';
+        case 'selesai':     return 'Telah Selesai';
+        default:            return '';
+    }
+});
+
+const statusColor = computed(() => {
+    switch (props.status_tahun_ajaran) {
+        case 'berjalan':    return 'badge-berjalan';
+        case 'akan-datang': return 'badge-akan-datang';
+        case 'selesai':     return 'badge-selesai';
+        default:            return '';
+    }
+});
 
 onMounted(() => {
     const observer = new IntersectionObserver((entries) => {
@@ -77,7 +98,7 @@ onMounted(() => {
                     <!-- Breadcrumb -->
                     <nav class="bc-nav">
                         <Link href="/" class="bc-link">Beranda</Link>
-                        <span class="bc-sep">&#x203A;</span>
+                        <span class="bc-sep">›</span>
                         <span class="bc-current">Tenaga Pendidik &amp; Kependidikan</span>
                     </nav>
 
@@ -85,48 +106,47 @@ onMounted(() => {
                     <div class="article-header">
                         <div class="article-line"></div>
                         <h1 class="article-title">Tenaga Pendidik &amp; Kependidikan</h1>
-                        <p class="article-subtitle">
-                            Daftar tenaga pendidik dan kependidikan aktif SMK Assalam Gegesik
-                            <template v-if="tahun_ajaran">TA {{ tahun_ajaran }}</template>
+
+                        <!-- Subtitle dinamis -->
+                        <p v-if="tahun_ajaran && tahun_ajaran !== '-'" class="article-subtitle">
+                            Daftar tenaga pendidik dan kependidikan aktif SMK Assalam Gegesik TA {{ tahun_ajaran }}
                         </p>
+
                     </div>
 
-                    <!-- Tabel gabungan -->
+                    <!-- Tabel -->
                     <div v-if="tkRows.length > 0 || guruRows.length > 0" class="table-wrap fade-in">
                         <table class="data-table">
                             <thead>
                                 <tr>
                                     <th class="th-no">No</th>
                                     <th>Nama PTK</th>
-                                    <th>Jabatan</th>
+                                    <th>Jabatan / Mata Pelajaran</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <!-- Tenaga Kependidikan -->
-                                <template v-if="tkRows.length > 0">
-                                    <tr class="tr-separator">
-                                        <td colspan="3">Tenaga Kependidikan</td>
-                                    </tr>
-                                    <tr v-for="row in tkRows" :key="'tk-' + row.no" class="tr-row">
-                                        <td class="td-no">{{ row.no }}</td>
-                                        <td class="td-name">{{ row.nama }}</td>
-                                        <td class="td-jabatan">{{ row.jabatan }}</td>
-                                    </tr>
-                                </template>
+                                <tr v-for="row in tkRows" :key="'tk-' + row.no" class="tr-row">
+                                    <td class="td-no">{{ row.no }}</td>
+                                    <td class="td-name">{{ row.nama }}</td>
+                                    <td class="td-jabatan">{{ row.jabatan }}</td>
+                                </tr>
 
-                                <!-- Tenaga Pendidik / Guru -->
-                                <template v-if="guruRows.length > 0">
-                                    <tr v-for="row in guruRows" :key="'gr-' + row.no" class="tr-row">
-                                        <td class="td-no">{{ row.no }}</td>
-                                        <td class="td-name">{{ row.nama }}</td>
-                                        <td class="td-jabatan">{{ row.jabatan }}</td>
-                                    </tr>
-                                </template>
+                                <!-- Guru -->
+                                <tr v-for="row in guruRows" :key="'gr-' + row.no" class="tr-row">
+                                    <td class="td-no">{{ row.no }}</td>
+                                    <td class="td-name">{{ row.nama }}</td>
+                                    <td class="td-jabatan">{{ row.jabatan }}</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
 
+                    <!-- Empty -->
                     <div v-else class="empty-state fade-in">
+                        <svg width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="empty-icon">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
                         <p>Data belum tersedia untuk tahun ajaran ini.</p>
                     </div>
 
@@ -181,38 +201,32 @@ onMounted(() => {
 .article-header { margin-bottom: 24px; }
 .article-line { width: 40px; height: 3px; background: var(--green-600); border-radius: 2px; margin-bottom: 16px; }
 .article-title { font-family: var(--font-display); font-size: clamp(20px, 3vw, 32px); font-weight: 700; color: var(--gray-900); line-height: 1.2; margin: 0 0 8px; }
+.article-subtitle { font-size: 14px; color: var(--gray-400); margin: 0 0 12px; }
 
-/* Subtitle + TA pakai font & ukuran sama */
-.article-subtitle {
-    font-size: 14px;
-    font-family: var(--font-body);
-    color: var(--gray-400);
-    margin: 0;
-}
+/* TA Info row */
+.ta-info { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.ta-label { font-size: 13px; font-weight: 600; color: var(--gray-700); }
+.ta-count { font-size: 12px; color: var(--gray-400); }
 
-/* Tabel dengan border lengkap (real table) */
+/* Badge status */
+.ta-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; }
+.badge-berjalan    { background: #dcfce7; color: #15803d; }
+.badge-akan-datang { background: #dbeafe; color: #1d4ed8; }
+.badge-selesai     { background: var(--gray-100); color: var(--gray-600); }
+
+.pulse-dot { width: 7px; height: 7px; background: #16a34a; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* Notice akan datang */
+.ta-notice { display: flex; align-items: flex-start; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #1d4ed8; line-height: 1.5; }
+.ta-notice svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Tabel */
 .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--gray-300); }
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .data-table thead { background: var(--gray-50); }
-.data-table th {
-    padding: 11px 16px;
-    text-align: left;
-    font-size: 12px; font-weight: 700;
-    color: var(--gray-600);
-    letter-spacing: 0.04em;
-    border: 1px solid var(--gray-300);
-}
+.data-table th { padding: 11px 16px; text-align: left; font-size: 12px; font-weight: 700; color: var(--gray-600); letter-spacing: 0.04em; border: 1px solid var(--gray-300); }
 .th-no { width: 52px; text-align: center; }
-
-.tr-separator td {
-    padding: 7px 16px;
-    font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.08em;
-    color: var(--green-700);
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-}
-
 .tr-row { border-bottom: 1px solid var(--gray-200); }
 .tr-row:last-child { border-bottom: none; }
 .tr-row:hover { background: #fafafa; }
@@ -221,5 +235,8 @@ onMounted(() => {
 .td-name { font-size: 13px; font-weight: 600; color: var(--gray-900); }
 .td-jabatan { font-size: 13px; color: var(--gray-600); }
 
-.empty-state { text-align: center; padding: 48px 24px; color: var(--gray-400); font-size: 14px; }
+/* Empty */
+.empty-state { text-align: center; padding: 60px 24px; color: var(--gray-400); }
+.empty-icon { margin: 0 auto 16px; display: block; }
+.empty-state p { font-size: 14px; }
 </style>
