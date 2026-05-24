@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pendaftaran;
+use App\Models\TahunAjaran;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,13 +14,28 @@ class PendaftaranController extends Controller
 {
     public function create(): Response
     {
-        return Inertia::render('landing/Pendaftaran');
+        $today = Carbon::today();
+
+        // 1. Cari yang akan datang terdekat (belum mulai, urut asc)
+        $tahunPpdb = TahunAjaran::whereDate('tanggal_mulai', '>', $today)
+            ->orderBy('tanggal_mulai', 'asc')
+            ->first();
+
+        // 2. Kalau tidak ada → ambil yang sedang berjalan
+        if (!$tahunPpdb) {
+            $tahunPpdb = TahunAjaran::whereDate('tanggal_mulai', '<=', $today)
+                ->whereDate('tanggal_selesai', '>=', $today)
+                ->first();
+        }
+
+        return Inertia::render('landing/Pendaftaran', [
+            'tahun_ppdb' => $tahunPpdb?->tahun ?? null,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            // Step 1 - Data Siswa
             'nama_lengkap'       => 'required|string|max:255',
             'jenis_kelamin'      => 'required|in:Laki-laki,Perempuan',
             'tempat_lahir'       => 'required|string|max:100',
@@ -29,14 +46,12 @@ class PendaftaranController extends Controller
             'no_kartu_keluarga'  => 'required|string|max:30',
             'nik'                => 'required|string|max:20',
             'no_akte'            => 'required|string|max:100',
-            // Penerima bantuan sekarang array
             'penerima_bantuan'   => 'required|array|min:1',
             'penerima_bantuan.*' => 'in:KIP,KPS/KKS/PKH,SKTM,Tidak Ada',
             'nomor_kip'          => 'nullable|string|max:50',
             'no_hp'              => 'required|string|max:20',
             'asal_sekolah'       => 'required|string|max:255',
             'tahun_lulus'        => 'required|digits:4|integer|min:2000|max:2099',
-            // Step 2 - Ayah
             'nama_ayah'          => 'required|string|max:255',
             'nik_ayah'           => 'required|string|max:20',
             'pendidikan_ayah'    => 'required|string|max:50',
@@ -44,7 +59,6 @@ class PendaftaranController extends Controller
             'tanggal_lahir_ayah' => 'nullable|date',
             'pekerjaan_ayah'     => 'required|string|max:100',
             'no_hp_ayah'         => 'required|string|max:20',
-            // Step 2 - Ibu
             'nama_ibu'           => 'required|string|max:255',
             'nik_ibu'            => 'required|string|max:20',
             'pendidikan_ibu'     => 'required|string|max:50',
@@ -52,13 +66,11 @@ class PendaftaranController extends Controller
             'tanggal_lahir_ibu'  => 'nullable|date',
             'pekerjaan_ibu'      => 'required|string|max:100',
             'no_hp_ibu'          => 'required|string|max:20',
-            // Step 2 - Alamat
             'jalan'              => 'required|string|max:255',
             'dusun_blok'         => 'required|string|max:100',
             'rt_rw'              => 'required|string|max:10',
             'desa'               => 'required|string|max:100',
             'kecamatan'          => 'required|string|max:100',
-            // Step 2 - Jurusan
             'jurusan'            => 'required|in:TKRO,TJKT',
         ], [
             'nama_lengkap.required'      => 'Nama lengkap wajib diisi.',

@@ -4,6 +4,18 @@ import { ref, watch, computed } from 'vue';
 import { DatePicker } from 'v-calendar';
 import 'v-calendar/style.css';
 
+// ✅ Terima tahun_ppdb dari controller
+const props = defineProps<{
+    tahun_ppdb?: string | null;
+}>();
+
+// ✅ Label tagline dinamis
+const taglinePpdb = computed(() =>
+    props.tahun_ppdb
+        ? `PENERIMAAN PESERTA DIDIK BARU ${props.tahun_ppdb}`
+        : 'PENERIMAAN PESERTA DIDIK BARU'
+);
+
 const currentStep = ref(1);
 
 const form = useForm({
@@ -44,14 +56,14 @@ const form = useForm({
     jurusan:            '',
 });
 
-// ── Date picker state ──────────────────────────────────────────────
-const tglLahir        = ref<Date | null>(null);
-const tglLahirAyah   = ref<Date | null>(null);
-const tglLahirIbu    = ref<Date | null>(null);
+// ── Date picker state ─────────────────────────────────────────────
+const tglLahir       = ref<Date | null>(null);
+const tglLahirAyah  = ref<Date | null>(null);
+const tglLahirIbu   = ref<Date | null>(null);
 
-const showCalTglLahir      = ref(false);
-const showCalTglLahirAyah  = ref(false);
-const showCalTglLahirIbu   = ref(false);
+const showCalTglLahir     = ref(false);
+const showCalTglLahirAyah = ref(false);
+const showCalTglLahirIbu  = ref(false);
 
 const formatDisplay = (date: Date | null): string => {
     if (!date) return '';
@@ -61,19 +73,19 @@ const formatDisplay = (date: Date | null): string => {
 const toInputFormat = (date: Date): string => date.toISOString().split('T')[0];
 
 const onSelectTglLahir = (day: any) => {
-    tglLahir.value          = day.date;
-    form.tanggal_lahir      = toInputFormat(day.date);
-    showCalTglLahir.value   = false;
+    tglLahir.value        = day.date;
+    form.tanggal_lahir    = toInputFormat(day.date);
+    showCalTglLahir.value = false;
 };
 const onSelectTglLahirAyah = (day: any) => {
-    tglLahirAyah.value         = day.date;
-    form.tanggal_lahir_ayah    = toInputFormat(day.date);
-    showCalTglLahirAyah.value  = false;
+    tglLahirAyah.value        = day.date;
+    form.tanggal_lahir_ayah   = toInputFormat(day.date);
+    showCalTglLahirAyah.value = false;
 };
 const onSelectTglLahirIbu = (day: any) => {
-    tglLahirIbu.value          = day.date;
-    form.tanggal_lahir_ibu     = toInputFormat(day.date);
-    showCalTglLahirIbu.value   = false;
+    tglLahirIbu.value        = day.date;
+    form.tanggal_lahir_ibu   = toInputFormat(day.date);
+    showCalTglLahirIbu.value = false;
 };
 
 const closeAllCal = () => {
@@ -203,6 +215,7 @@ const goPrev = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
+// ── Validasi step 2 ───────────────────────────────────────────────
 const step2Errors = ref<Record<string, string>>({});
 
 const validateStep2 = (): boolean => {
@@ -323,27 +336,15 @@ const e = (field: string): string =>
 const today = new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
 
 // ── Contoh modal ──────────────────────────────────────────────────
-const showContoh = ref(false);
+const showContoh  = ref(false);
 const contohTitle = ref('');
 const contohImg   = ref('');
 
 const contohData: Record<string, { title: string; img: string }> = {
-    no_kartu_keluarga: {
-        title: 'Contoh No. Kartu Keluarga',
-        img: '/storage/img/pendaftaran/noKK.png',
-    },
-    nik: {
-        title: 'Contoh NIK Siswa (KTP/KK)',
-        img: '/storage/img/pendaftaran/NIK.png',
-    },
-    no_akte: {
-        title: 'Contoh No. Akte Kelahiran',
-        img: '/storage/img/pendaftaran/noakte.png',
-    },
-    nomor_kip: {
-        title: 'Contoh Nomor KIP',
-        img: '/storage/img/pendaftaran/KIP.png',
-    },
+    no_kartu_keluarga: { title: 'Contoh No. Kartu Keluarga', img: '/storage/img/pendaftaran/noKK.png' },
+    nik:               { title: 'Contoh NIK Siswa (KTP/KK)', img: '/storage/img/pendaftaran/NIK.png' },
+    no_akte:           { title: 'Contoh No. Akte Kelahiran',  img: '/storage/img/pendaftaran/noakte.png' },
+    nomor_kip:         { title: 'Contoh Nomor KIP',           img: '/storage/img/pendaftaran/KIP.png' },
 };
 
 const openContoh = (key: string) => {
@@ -353,10 +354,8 @@ const openContoh = (key: string) => {
     contohImg.value   = data.img;
     showContoh.value  = true;
 };
-
 const closeContoh = () => { showContoh.value = false; };
 
-// ── Google Form link ──────────────────────────────────────────────
 const GFORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScO2vo5YiXj4Fh3UAvKLAKUgOqN1E2cs1m-vPFqh2S3TmrTAw/viewform';
 </script>
 
@@ -373,7 +372,7 @@ const GFORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScO2vo5YiXj4Fh3UAvKL
                 </div>
                 <div class="topbar-school">
                     <div class="topbar-name">SMK ASSALAM GEGESIK</div>
-                    <div class="topbar-tagline">PENERIMAAN PESERTA DIDIK BARU 2026/2027</div>
+                    <div class="topbar-tagline">{{ taglinePpdb }}</div>
                 </div>
             </div>
             <div class="topbar-right">
