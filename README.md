@@ -63,19 +63,19 @@
 
 ### Berita & Kegiatan
 
-<img src="screenshots/berita.png" width="600"/>
+<img src="screenshots/berita.webp" width="600"/>
 
 <br/>
 
 ### Artikel
 
-<img src="screenshots/artikel.png" width="600"/>
+<img src="screenshots/artikel.webp" width="600"/>
 
 <br/>
 
 ### Formulir Pendaftaran (PPDB)
 
-<img src="screenshots/ppdb.png" width="600"/>
+<img src="screenshots/ppdb.webp" width="600"/>
 
 ---
 
