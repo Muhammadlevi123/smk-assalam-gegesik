@@ -21,43 +21,43 @@
 
 ### Landing Page
 
-<img src="screenshots/landing.png" width="600"/>
+<img src="screenshots/landing.webp" width="600"/>
 
 <br/>
 
 ### Halaman Login
 
-<img src="screenshots/login.png" width="600"/>
+<img src="screenshots/login.webp" width="600"/>
 
 <br/>
 
 ### Dashboard Admin
 
-<img src="screenshots/dashboard.png" width="600"/>
+<img src="screenshots/dashboard.webp" width="600"/>
 
 <br/>
 
 ### Sejarah Sekolah
 
-<img src="screenshots/sejarah.png" width="600"/>
+<img src="screenshots/sejarah.webp" width="600"/>
 
 <br/>
 
 ### Tenaga Pendidik & Kependidikan
 
-<img src="screenshots/tenaga-pendidik.png" width="600"/>
+<img src="screenshots/tenaga-pendidik.webp" width="600"/>
 
 <br/>
 
 ### Kalender Akademik
 
-<img src="screenshots/kalender.png" width="600"/>
+<img src="screenshots/kalender.webp" width="600"/>
 
 <br/>
 
 ### Prestasi Siswa
 
-<img src="screenshots/prestasi.png" width="600"/>
+<img src="screenshots/prestasi.webp" width="600"/>
 
 <br/>
 
