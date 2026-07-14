@@ -33,7 +33,6 @@ interface KelasAsWali {
 
 interface Guru {
     id: number;
-    nip: string;
     nama: string;
     jenis_kelamin: string;
     alamat?: string;
@@ -174,7 +173,6 @@ const waliKelasFlat = computed(() => {
                                     class="h-44 w-44 rounded-2xl border border-gray-200 bg-gray-50 object-cover ring-1 ring-black/5 dark:border-gray-700 dark:bg-gray-800 dark:ring-white/10" />
                                 <div class="text-center">
                                     <p class="text-lg font-bold text-gray-900 dark:text-white">{{ guru.nama }}</p>
-                                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">NIP: {{ guru.nip }}</p>
                                 </div>
                             </div>
                         </div>
@@ -188,11 +186,7 @@ const waliKelasFlat = computed(() => {
                             </div>
                             <div class="p-6">
                                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div class="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
-                                        <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">NIP</p>
-                                        <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-white break-all">{{ guru.nip }}</p>
-                                    </div>
-                                    <div class="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
+                                    <div class="sm:col-span-2 rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
                                         <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Nama Lengkap</p>
                                         <p class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ guru.nama }}</p>
                                     </div>
