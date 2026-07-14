@@ -23,7 +23,6 @@ class GuruController extends Controller
         return [
             'id'            => $g->id,
             'nama'          => $g->nama,
-            'nip'           => $g->nip,
             'jenis_kelamin' => $g->jenis_kelamin,
             'alamat'        => $g->alamat,
             'foto'          => $g->foto,
@@ -40,7 +39,6 @@ class GuruController extends Controller
                 ],
             ])->values()->toArray(),
 
-            // ✅ Hapus tingkat & jurusan — kolom sudah tidak ada di MataPelajaran
             'mataPelajaran' => $g->mataPelajaran->map(fn ($m) => [
                 'id'    => $m->id,
                 'nama'  => $m->nama,
@@ -72,10 +70,7 @@ class GuruController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->get('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('nama', 'LIKE', "%{$search}%")
-                  ->orWhere('nip', 'LIKE', "%{$search}%");
-            });
+            $query->where('nama', 'LIKE', "%{$search}%");
         }
 
         if ($request->filled('jenis_kelamin')) {
@@ -143,7 +138,6 @@ class GuruController extends Controller
             ];
         });
 
-        // ✅ Hanya kirim nama mapel — tingkat & jurusan sudah tidak ada
         $existingMataPelajaran = MataPelajaran::orderBy('nama')
             ->get()
             ->map(fn ($m) => ['nama' => $m->nama])
@@ -162,14 +156,12 @@ class GuruController extends Controller
     {
         $validated = $request->validate([
             'nama'                                  => 'required|string|max:255',
-            'nip'                                   => 'required|string|unique:guru,nip',
             'jenis_kelamin'                         => 'required|in:Laki-laki,Perempuan',
             'alamat'                                => 'nullable|string|max:500',
             'foto'                                  => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'status_tahun_ajaran'                   => 'required|array|min:1',
             'status_tahun_ajaran.*.tahun_ajaran_id' => 'required|exists:tahun_ajaran,id',
             'status_tahun_ajaran.*.status'          => 'required|in:Aktif,Nonaktif',
-            // ✅ Hapus tingkat & jurusan dari validation
             'pengajaran'                            => 'nullable|array',
             'pengajaran.*.nama_mata_pelajaran'      => 'required_with:pengajaran|string|max:255',
             'pengajaran.*.tahun_ajaran_id'          => 'required_with:pengajaran|exists:tahun_ajaran,id',
@@ -213,7 +205,6 @@ class GuruController extends Controller
         DB::transaction(function () use ($validated, $fotoPath) {
             $guru = Guru::create([
                 'nama'          => $validated['nama'],
-                'nip'           => $validated['nip'],
                 'jenis_kelamin' => $validated['jenis_kelamin'],
                 'alamat'        => $validated['alamat'],
                 'foto'          => $fotoPath,
@@ -226,7 +217,6 @@ class GuruController extends Controller
             }
 
             foreach ($validated['pengajaran'] ?? [] as $p) {
-                // ✅ firstOrCreate hanya pakai nama — tidak ada tingkat & jurusan
                 $mapel = MataPelajaran::firstOrCreate([
                     'nama' => trim($p['nama_mata_pelajaran']),
                 ]);
@@ -280,7 +270,6 @@ class GuruController extends Controller
             'status'          => $t->pivot->status,
         ]);
 
-        // ✅ Hapus tingkat & jurusan dari pengajaran form
         $guru->pengajaran = $guru->mataPelajaran->map(fn ($m) => [
             'nama_mata_pelajaran' => $m->nama,
             'tahun_ajaran_id'     => $m->pivot->tahun_ajaran_id,
@@ -304,7 +293,6 @@ class GuruController extends Controller
             ];
         });
 
-        // ✅ Hanya kirim nama mapel
         $existingMataPelajaran = MataPelajaran::orderBy('nama')
             ->get()
             ->map(fn ($m) => ['nama' => $m->nama])
@@ -326,14 +314,12 @@ class GuruController extends Controller
 
         $validated = $request->validate([
             'nama'                                  => 'required|string|max:255',
-            'nip'                                   => ['required', 'string', Rule::unique('guru')->ignore($guru->id)],
             'jenis_kelamin'                         => 'required|in:Laki-laki,Perempuan',
             'alamat'                                => 'nullable|string|max:500',
             'foto'                                  => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'status_tahun_ajaran'                   => 'required|array|min:1',
             'status_tahun_ajaran.*.tahun_ajaran_id' => 'required|exists:tahun_ajaran,id',
             'status_tahun_ajaran.*.status'          => 'required|in:Aktif,Nonaktif',
-            // ✅ Hapus tingkat & jurusan dari validation
             'pengajaran'                            => 'nullable|array',
             'pengajaran.*.nama_mata_pelajaran'      => 'required_with:pengajaran|string|max:255',
             'pengajaran.*.tahun_ajaran_id'          => 'required_with:pengajaran|exists:tahun_ajaran,id',
@@ -371,19 +357,17 @@ class GuruController extends Controller
         }
 
         $fotoPath = $guru->foto;
-if ($request->hasFile('foto')) {
-    // Upload foto baru → hapus yang lama dulu
-    if ($guru->foto) Storage::disk('public')->delete($guru->foto);
-    $fotoPath = $request->file('foto')->store('img/guru', 'public');
-} elseif ($request->input('hapus_foto') == '1') {
-    // Hapus foto tanpa ganti
-    if ($guru->foto) Storage::disk('public')->delete($guru->foto);
-    $fotoPath = null;
-}
+        if ($request->hasFile('foto')) {
+            if ($guru->foto) Storage::disk('public')->delete($guru->foto);
+            $fotoPath = $request->file('foto')->store('img/guru', 'public');
+        } elseif ($request->input('hapus_foto') == '1') {
+            if ($guru->foto) Storage::disk('public')->delete($guru->foto);
+            $fotoPath = null;
+        }
+
         DB::transaction(function () use ($guru, $validated, $fotoPath) {
             $guru->update([
                 'nama'          => $validated['nama'],
-                'nip'           => $validated['nip'],
                 'jenis_kelamin' => $validated['jenis_kelamin'],
                 'alamat'        => $validated['alamat'],
                 'foto'          => $fotoPath,
@@ -401,7 +385,6 @@ if ($request->hasFile('foto')) {
 
             $guru->mataPelajaran()->detach();
             foreach ($validated['pengajaran'] ?? [] as $p) {
-                // ✅ firstOrCreate hanya pakai nama
                 $mapel = MataPelajaran::firstOrCreate([
                     'nama' => trim($p['nama_mata_pelajaran']),
                 ]);

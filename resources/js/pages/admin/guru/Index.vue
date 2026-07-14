@@ -1,15 +1,3 @@
-<!--
-    PERUBAHAN DARI KODE ASLI:
-
-    1. Tambah computed helper uniqueMapelCount(guru)
-       → hitung unique berdasarkan mata_pelajaran_id, bukan panjang array
-
-    2. Ganti semua item.mataPelajaran.length
-       → uniqueMapelCount(item)
-
-    3. mapelGrouped sudah benar (group per id), tidak perlu diubah
--->
-
 <script setup lang="ts">
 import AppLayout from '../../../layouts/AppLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
@@ -52,7 +40,6 @@ interface MataPelajaran {
 interface Guru {
     id: number;
     nama: string;
-    nip: string;
     jenis_kelamin: string;
     alamat?: string;
     foto?: string;
@@ -145,8 +132,6 @@ const confirmDelete = () => {
 const openMapelModal  = (guru: Guru) => { selectedGuruMapel.value = guru; showMapelModal.value = true; };
 const closeMapelModal = () => { showMapelModal.value = false; selectedGuruMapel.value = null; };
 
-// ✅ FIX: Hitung unique mata pelajaran berdasarkan id (bukan panjang array)
-// Satu mapel bisa punya banyak pivot (beda tahun ajaran) — tetap dihitung 1
 const uniqueMapelCount = (guru: Guru): number => {
     if (!guru.mataPelajaran?.length) return 0;
     return new Set(guru.mataPelajaran.map(m => m.id)).size;
@@ -167,7 +152,6 @@ const mapelFlat = computed(() => {
         .sort((a, b) => b.tahun_sort - a.tahun_sort);
 });
 
-// Group per mapel — satu mapel bisa punya beberapa tahun ajaran
 const mapelGrouped = computed(() => {
     const map = new Map<number, { id: number; nama: string; tahun_list: string[] }>();
     for (const m of mapelFlat.value) {
@@ -269,7 +253,7 @@ onUnmounted(() => { clearCountdown(); });
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cari Guru</label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none sm:pl-4"><span v-html="SearchIcon()" class="text-gray-400"></span></div>
-                                    <input v-model="searchForm.search" type="text" placeholder="Cari berdasarkan nama atau NIP..."
+                                    <input v-model="searchForm.search" type="text" placeholder="Cari berdasarkan nama..."
                                         class="block w-full rounded-lg border-0 bg-gray-50 py-2.5 pl-10 pr-3 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:placeholder:text-gray-500 dark:focus:bg-gray-700 dark:focus:ring-blue-500 sm:py-3 sm:pl-12 sm:pr-4 sm:rounded-xl" />
                                 </div>
                             </div>
@@ -337,7 +321,6 @@ onUnmounted(() => { clearCountdown(); });
                             <thead class="bg-gray-50/80 dark:bg-gray-800/50">
                                 <tr>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Guru</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">NIP</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Jenis Kelamin</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Mata Pelajaran</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Status</th>
@@ -356,16 +339,11 @@ onUnmounted(() => { clearCountdown(); });
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ item.nip }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
                                         <span :class="item.jenis_kelamin === 'Laki-laki' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300'"
                                             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
                                             {{ item.jenis_kelamin }}
                                         </span>
                                     </td>
-
-                                    <!-- ✅ FIX: pakai uniqueMapelCount(item) bukan item.mataPelajaran.length -->
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <button v-if="uniqueMapelCount(item) > 0"
                                             @click="openMapelModal(item)"
@@ -375,7 +353,6 @@ onUnmounted(() => { clearCountdown(); });
                                         </button>
                                         <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
                                     </td>
-
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span :class="getStatusColor(getGuruStatus(item))" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
                                             {{ getGuruStatus(item) }}
@@ -413,15 +390,13 @@ onUnmounted(() => { clearCountdown(); });
                                         <h3 class="text-base font-semibold text-gray-900 dark:text-white leading-tight">{{ item.nama }}</h3>
                                         <span :class="getStatusColor(getGuruStatus(item))" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">{{ getGuruStatus(item) }}</span>
                                     </div>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">NIP: {{ item.nip }}</p>
+                                    <span :class="item.jenis_kelamin === 'Laki-laki' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300'"
+                                        class="mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
+                                        {{ item.jenis_kelamin }}
+                                    </span>
                                 </div>
                             </div>
-                            <div class="mt-3 grid grid-cols-2 gap-2">
-                                <div class="rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">Jenis Kelamin</p>
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ item.jenis_kelamin }}</p>
-                                </div>
-                                <!-- ✅ FIX: pakai uniqueMapelCount(item) -->
+                            <div class="mt-3">
                                 <div class="rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Mata Pelajaran</p>
                                     <button v-if="uniqueMapelCount(item) > 0" @click="openMapelModal(item)"
@@ -526,7 +501,6 @@ onUnmounted(() => { clearCountdown(); });
                             </div>
                         </div>
                         <div class="flex items-center justify-between border-t border-gray-100 bg-gray-50/80 px-6 py-3 dark:border-gray-800 dark:bg-gray-800/50">
-                            <!-- ✅ FIX: footer modal juga pakai mapelGrouped.length (sudah benar) -->
                             <span class="text-xs text-gray-500 dark:text-gray-400">{{ mapelGrouped.length }} mata pelajaran</span>
                             <button @click="closeMapelModal" class="rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-900">Tutup</button>
                         </div>
@@ -550,7 +524,7 @@ onUnmounted(() => { clearCountdown(); });
                 </div>
                 <div class="mt-4">
                     <p class="text-sm text-gray-700 dark:text-gray-300">
-                        Apakah Anda yakin ingin menghapus guru <span class="font-semibold">"{{ selectedGuru?.nama }}"</span> dengan NIP <span class="font-semibold">{{ selectedGuru?.nip }}</span>?
+                        Apakah Anda yakin ingin menghapus guru <span class="font-semibold">"{{ selectedGuru?.nama }}"</span>?
                     </p>
                 </div>
                 <div class="mt-6 flex gap-3">
