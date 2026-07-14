@@ -145,17 +145,17 @@ let teacherCarouselInterval: number | null = null;
 
 const teachers = computed((): Teacher[] => {
     const list: Teacher[] = [];
-    props.guru?.forEach(g => list.push({
-        id: `guru-${g.id}`,
-        name: g.nama,
-        position: g.mata_pelajaran?.toUpperCase() || 'GURU',
-        image: g.foto ? `/storage/${g.foto}` : `/storage/img/logo/logo.png`
-    }));
     props.tenaga_kependidikan?.forEach(t => list.push({
         id: `tenaga-${t.id}`,
         name: t.nama,
         position: t.jabatan?.toUpperCase() || 'STAF',
         image: t.foto ? `/storage/${t.foto}` : `/storage/img/logo/logo.png`
+    }));
+    props.guru?.forEach(g => list.push({
+        id: `guru-${g.id}`,
+        name: g.nama,
+        position: g.mata_pelajaran?.toUpperCase() || 'GURU',
+        image: g.foto ? `/storage/${g.foto}` : `/storage/img/logo/logo.png`
     }));
     return list;
 });
