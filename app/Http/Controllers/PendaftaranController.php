@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pendaftaran;
+use App\Models\Pengaturan;
 use App\Models\TahunAjaran;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -14,14 +15,23 @@ class PendaftaranController extends Controller
 {
     public function create(): Response
     {
+        $status = Pengaturan::pendaftaranStatus();
+
+        if (!$status['dibuka']) {
+            return Inertia::render('landing/PendaftaranClosed', [
+                'tanggal_mulai'   => $status['tanggal_mulai'],
+                'tanggal_selesai' => $status['tanggal_selesai'],
+                'belum_mulai'     => $status['belum_mulai'],
+                'sudah_lewat'     => $status['sudah_lewat'],
+            ]);
+        }
+
         $today = Carbon::today();
 
-        // 1. Cari yang akan datang terdekat (belum mulai, urut asc)
         $tahunPpdb = TahunAjaran::whereDate('tanggal_mulai', '>', $today)
             ->orderBy('tanggal_mulai', 'asc')
             ->first();
 
-        // 2. Kalau tidak ada → ambil yang sedang berjalan
         if (!$tahunPpdb) {
             $tahunPpdb = TahunAjaran::whereDate('tanggal_mulai', '<=', $today)
                 ->whereDate('tanggal_selesai', '>=', $today)
@@ -35,6 +45,12 @@ class PendaftaranController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $status = Pengaturan::pendaftaranStatus();
+
+        if (!$status['dibuka']) {
+            return redirect()->route('pendaftaran.create');
+        }
+
         $validated = $request->validate([
             'nama_lengkap'       => 'required|string|max:255',
             'jenis_kelamin'      => 'required|in:Laki-laki,Perempuan',

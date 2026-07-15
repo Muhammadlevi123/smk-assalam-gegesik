@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pendaftaran;
+use App\Models\Pengaturan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,12 +28,10 @@ class PendaftaranController extends Controller
             });
         }
 
-        // Filter bulan daftar
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->get('bulan'));
         }
 
-        // Filter tahun daftar
         if ($request->filled('tahun_daftar')) {
             $query->whereYear('created_at', $request->get('tahun_daftar'));
         }
@@ -46,7 +45,6 @@ class PendaftaranController extends Controller
             ->orderBy('tahun_lulus', 'desc')
             ->pluck('tahun_lulus');
 
-        // Tahun yang ada datanya (dari created_at)
         $tahunDaftarList = Pendaftaran::selectRaw('YEAR(created_at) as tahun')
             ->distinct()
             ->orderBy('tahun', 'desc')
@@ -55,7 +53,6 @@ class PendaftaranController extends Controller
             ->values()
             ->toArray();
 
-        // Bulan per tahun yang ada datanya
         $bulanDaftarMap = [];
         foreach ($tahunDaftarList as $tahun) {
             $bulanDaftarMap[$tahun] = Pendaftaran::selectRaw('MONTH(created_at) as bulan')
@@ -69,14 +66,15 @@ class PendaftaranController extends Controller
         }
 
         return Inertia::render('admin/pendaftaran/Index', [
-            'pendaftaran'    => $pendaftaran,
-            'filters'        => $request->only([
+            'pendaftaran'       => $pendaftaran,
+            'filters'           => $request->only([
                 'search', 'jenis_kelamin', 'jurusan', 'tahun_lulus', 'penerima_bantuan',
             ]),
-            'tahunLulusList'  => $tahunLulusList,
-            'tahunDaftarList' => $tahunDaftarList,
-            'bulanDaftarMap'  => $bulanDaftarMap,
-            'totalPendaftar'  => Pendaftaran::count(),
+            'tahunLulusList'    => $tahunLulusList,
+            'tahunDaftarList'   => $tahunDaftarList,
+            'bulanDaftarMap'    => $bulanDaftarMap,
+            'totalPendaftar'    => Pendaftaran::count(),
+            'statusPendaftaran' => Pengaturan::pendaftaranStatus(),
         ]);
     }
 
@@ -149,6 +147,33 @@ class PendaftaranController extends Controller
                          ->with('success', 'deleted');
     }
 
+    // ── Simpan Jadwal Pendaftaran (tanggal mulai - selesai) ─────────
+    public function updateJadwal(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'tanggal_mulai'   => 'required|date',
+            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
+        ], [
+            'tanggal_mulai.required'         => 'Tanggal mulai wajib diisi.',
+            'tanggal_selesai.required'       => 'Tanggal selesai wajib diisi.',
+            'tanggal_selesai.after_or_equal' => 'Tanggal selesai tidak boleh sebelum tanggal mulai.',
+        ]);
+
+        Pengaturan::set('pendaftaran_tanggal_mulai', $validated['tanggal_mulai']);
+        Pengaturan::set('pendaftaran_tanggal_selesai', $validated['tanggal_selesai']);
+
+        return back()->with('success', 'jadwal_updated');
+    }
+
+    // ── Tutup Pendaftaran (menghapus jadwal, otomatis nonaktif) ─────
+    public function closeJadwal(Request $request): RedirectResponse
+    {
+        Pengaturan::remove('pendaftaran_tanggal_mulai');
+        Pengaturan::remove('pendaftaran_tanggal_selesai');
+
+        return back()->with('success', 'jadwal_closed');
+    }
+
     // ── Export CSV ────────────────────────────────────────────────
     public function exportExcel(Request $request)
     {
@@ -191,7 +216,6 @@ class PendaftaranController extends Controller
             fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
             fputcsv($file, $columns, ';');
             foreach ($data as $i => $row) {
-                // penerima_bantuan sekarang array — join dengan koma
                 $penerimaBantuan = is_array($row->penerima_bantuan)
                     ? implode(', ', $row->penerima_bantuan)
                     : ($row->penerima_bantuan ?? '-');

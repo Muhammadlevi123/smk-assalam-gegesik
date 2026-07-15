@@ -2,11 +2,14 @@
 import AppLayout from '../../../layouts/AppLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ref, computed, watch, onUnmounted } from 'vue';
+import { DatePicker } from 'v-calendar';
+import 'v-calendar/style.css';
 import { type BreadcrumbItem } from '../../../types';
 
 const showDeleteModal        = ref(false);
 const showExportModal        = ref(false);
-const exportType             = ref<'excel' | 'pdf'>('excel');
+const showJadwalModal        = ref(false);
+const exportType              = ref<'excel' | 'pdf'>('excel');
 const exportForm             = ref({ bulan: '', tahun_daftar: '', jurusan: '', tahun_lulus: '' });
 const showSuccessDeletePopup = ref(false);
 const showSuccessUpdatePopup = ref(false);
@@ -21,6 +24,8 @@ const TrashIcon       = () => `<svg class="w-4 h-4" fill="none" stroke="currentC
 const ExcelIcon       = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>`;
 const PdfIcon         = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>`;
 const ChevronDownIcon = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>`;
+const CalendarIcon    = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5a2.25 2.25 0 0 1 2.25 2.25v7.5" /></svg>`;
+const XMarkIcon       = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
 
 interface Pendaftaran {
     id: number; nama_lengkap: string; jenis_kelamin: string;
@@ -35,6 +40,14 @@ interface Pendaftaran {
     tanggal_lahir_ibu?: string; pekerjaan_ibu: string; no_hp_ibu: string;
     jalan: string; dusun_blok: string; rt_rw: string; desa: string; kecamatan: string;
     created_at: string;
+}
+
+interface StatusPendaftaran {
+    dibuka: boolean;
+    tanggal_mulai: string | null;
+    tanggal_selesai: string | null;
+    belum_mulai: boolean;
+    sudah_lewat: boolean;
 }
 
 interface Props {
@@ -52,6 +65,7 @@ interface Props {
     tahunDaftarList?: number[];
     bulanDaftarMap?: Record<number, number[]>;
     totalPendaftar: number;
+    statusPendaftaran: StatusPendaftaran;
 }
 
 const props = defineProps<Props>();
@@ -71,6 +85,98 @@ const searchForm = useForm({
 });
 
 const deleteForm = useForm({});
+
+// ─── Helper tanggal ─────────────────────────────────────────────────
+const parseDateStr = (str: string | null): Date | null => {
+    if (!str) return null;
+    const d = new Date(str + 'T00:00:00');
+    return isNaN(d.getTime()) ? null : d;
+};
+const toInputFormat = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+const formatDisplay = (date: Date | null): string => {
+    if (!date) return '';
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
+// ─── Modal Atur Jadwal ──────────────────────────────────────────────
+const jadwalSudahDiisi = computed(() =>
+    !!props.statusPendaftaran.tanggal_mulai && !!props.statusPendaftaran.tanggal_selesai
+);
+
+const jadwalForm = useForm({
+    tanggal_mulai:   '',
+    tanggal_selesai: '',
+});
+
+const tanggalMulaiValue   = ref<Date | null>(null);
+const tanggalSelesaiValue = ref<Date | null>(null);
+const showCalMulai        = ref(false);
+const showCalSelesai      = ref(false);
+
+const openJadwalModal = () => {
+    jadwalForm.clearErrors();
+    jadwalForm.tanggal_mulai   = props.statusPendaftaran.tanggal_mulai   || '';
+    jadwalForm.tanggal_selesai = props.statusPendaftaran.tanggal_selesai || '';
+    tanggalMulaiValue.value    = parseDateStr(props.statusPendaftaran.tanggal_mulai);
+    tanggalSelesaiValue.value  = parseDateStr(props.statusPendaftaran.tanggal_selesai);
+    showJadwalModal.value      = true;
+};
+
+const closeJadwalModal = () => {
+    showJadwalModal.value = false;
+    showCalMulai.value    = false;
+    showCalSelesai.value  = false;
+};
+
+const onSelectMulai = (day: any) => {
+    tanggalMulaiValue.value  = day.date;
+    jadwalForm.tanggal_mulai = toInputFormat(day.date);
+    showCalMulai.value       = false;
+};
+const onSelectSelesai = (day: any) => {
+    tanggalSelesaiValue.value  = day.date;
+    jadwalForm.tanggal_selesai = toInputFormat(day.date);
+    showCalSelesai.value       = false;
+};
+
+const saveJadwal = () => {
+    jadwalForm.patch(route('admin.pendaftaran.update-jadwal'), {
+        preserveScroll: true,
+        onSuccess: () => { closeJadwalModal(); },
+    });
+};
+
+// ─── Tutup Pendaftaran (mengosongkan jadwal, auto off) ─────────────
+const closeForm = useForm({});
+const isClosing = ref(false);
+
+const tutupPendaftaran = () => {
+    isClosing.value = true;
+    closeForm.delete(route('admin.pendaftaran.close-jadwal'), {
+        preserveScroll: true,
+        onSuccess: () => { closeJadwalModal(); },
+        onFinish: () => { isClosing.value = false; },
+    });
+};
+
+const statusLabel = computed(() => {
+    if (props.statusPendaftaran.dibuka) return 'Sedang Berjalan';
+    if (props.statusPendaftaran.belum_mulai) return 'Belum Dimulai';
+    if (props.statusPendaftaran.sudah_lewat) return 'Sudah Berakhir';
+    return 'Tidak Berjalan';
+});
+
+const statusColor = computed(() => props.statusPendaftaran.dibuka ? 'bg-green-500' : 'bg-gray-400');
+const statusBadgeClass = computed(() =>
+    props.statusPendaftaran.dibuka
+        ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+);
 
 const debounce = (func: Function, delay: number) => {
     let timeoutId: ReturnType<typeof setTimeout>;
@@ -144,7 +250,6 @@ const formatDate = (str?: string) => {
     return new Date(str).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-// Parse penerima_bantuan array
 const formatBantuan = (val: string | string[]): string => {
     if (Array.isArray(val)) return val.filter(v => v !== 'Tidak Ada').join(', ') || '-';
     try { const arr = JSON.parse(val); return Array.isArray(arr) ? arr.filter((v: string) => v !== 'Tidak Ada').join(', ') || '-' : val; }
@@ -157,7 +262,6 @@ const hasBantuan = (val: string | string[]): boolean => {
     catch { return val !== 'Tidak Ada'; }
 };
 
-// Daftar bulan dan tahun untuk filter export
 const bulanList = [
     { value: '1', label: 'Januari' }, { value: '2', label: 'Februari' },
     { value: '3', label: 'Maret' }, { value: '4', label: 'April' },
@@ -167,7 +271,6 @@ const bulanList = [
     { value: '11', label: 'November' }, { value: '12', label: 'Desember' },
 ];
 
-// Tahun dan bulan dari props (data real di DB)
 const availableBulan = computed(() => {
     if (!exportForm.value.tahun_daftar || !props.bulanDaftarMap) return [];
     const tahun = parseInt(exportForm.value.tahun_daftar);
@@ -178,7 +281,6 @@ const tahunDaftarList = computed(() => props.tahunDaftarList || []);
 
 const openExport = (type: 'excel' | 'pdf') => {
     exportType.value = type;
-    // Isi dari filter aktif
     exportForm.value = {
         bulan:        '',
         tahun_daftar: '',
@@ -235,7 +337,19 @@ const buildExportUrl = (type: 'excel' | 'pdf') => {
                             <div class="flex items-center gap-2"><div class="h-2 w-2 rounded-full bg-purple-500"></div><span>{{ countTJKT }} TJKT</span></div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Status Badge -->
+                        <div :class="statusBadgeClass" class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold">
+                            <div :class="statusColor" class="h-2 w-2 rounded-full"></div>
+                            Jadwal Pendaftaran: {{ statusLabel }}
+                        </div>
+
+                        <!-- Atur Jadwal -->
+                        <button @click="openJadwalModal" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700">
+                            <span v-html="CalendarIcon()"></span><span class="hidden sm:inline">Atur Jadwal Pendaftaran</span>
+                        </button>
+
                         <button @click="openExport('excel')" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">
                             <span v-html="ExcelIcon()"></span><span class="hidden sm:inline">Export Excel</span>
                         </button>
@@ -436,6 +550,99 @@ const buildExportUrl = (type: 'excel' | 'pdf') => {
                     </nav>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- ══════════════ Modal Atur Jadwal Pendaftaran ══════════════ -->
+        <!-- Overlay yang scroll, bukan card-nya, biar kalender pop-up tidak terpotong -->
+        <div v-if="showJadwalModal" class="fixed inset-0 z-50 overflow-y-auto" @click.self="closeJadwalModal">
+            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl dark:bg-gray-900 my-8">
+                    <div class="mb-5 flex items-start justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Atur Jadwal Pendaftaran</h3>
+                            <p class="mt-1 text-sm text-gray-500">Pendaftaran otomatis berjalan sesuai tanggal ini</p>
+                        </div>
+                        <button @click="closeJadwalModal" class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+                            <span v-html="XMarkIcon()"></span>
+                        </button>
+                    </div>
+
+                    <!-- ── Jadwal sudah diisi: tampil info + tombol tutup ── -->
+                    <div v-if="jadwalSudahDiisi" class="space-y-4">
+                        <div :class="statusBadgeClass" class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold w-fit">
+                            <div :class="statusColor" class="h-2 w-2 rounded-full"></div>
+                            {{ statusLabel }}
+                        </div>
+
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-700 dark:bg-gray-800">
+                            <div class="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                                <span v-html="CalendarIcon()"></span>
+                                <p class="text-sm font-semibold">Periode pendaftaran</p>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-800 dark:text-gray-200">
+                                Dari tanggal <span class="font-semibold">{{ formatDisplay(parseDateStr(statusPendaftaran.tanggal_mulai)) }}</span>
+                                sampai <span class="font-semibold">{{ formatDisplay(parseDateStr(statusPendaftaran.tanggal_selesai)) }}</span>
+                            </p>
+                        </div>
+
+                        <button @click="tutupPendaftaran" :disabled="isClosing"
+                            class="w-full rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50">
+                            {{ isClosing ? 'Menutup...' : 'Tutup Pendaftaran' }}
+                        </button>
+                        <p class="text-center text-xs text-gray-400">Menutup pendaftaran akan menghapus jadwal ini secara otomatis.</p>
+                    </div>
+
+                    <!-- ── Jadwal belum diisi: tampil kalender + tombol simpan ── -->
+                    <div v-else class="space-y-5">
+                        <!-- Tanggal Mulai -->
+                        <div class="space-y-1.5">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Mulai</label>
+                            <div class="relative">
+                                <button type="button" @click="showCalMulai = !showCalMulai; showCalSelesai = false"
+                                    class="flex w-full items-center gap-3 rounded-xl border-0 bg-gray-50 py-3 px-4 text-left ring-1 ring-inset ring-gray-200 transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:bg-gray-800 dark:ring-gray-700">
+                                    <span v-html="CalendarIcon()" class="text-gray-400 flex-shrink-0"></span>
+                                    <span class="flex-1 text-sm" :class="tanggalMulaiValue ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-400 dark:text-gray-500'">
+                                        {{ tanggalMulaiValue ? formatDisplay(tanggalMulaiValue) : 'Pilih tanggal mulai' }}
+                                    </span>
+                                    <span v-html="ChevronDownIcon()" class="text-gray-400 flex-shrink-0 transition-transform" :class="showCalMulai ? 'rotate-180' : ''"></span>
+                                </button>
+                                <div v-if="showCalMulai" class="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                                    <DatePicker v-model="tanggalMulaiValue" @dayclick="onSelectMulai" color="indigo" is-expanded class="rounded-2xl" />
+                                </div>
+                            </div>
+                            <p v-if="jadwalForm.errors.tanggal_mulai" class="text-xs text-red-500">{{ jadwalForm.errors.tanggal_mulai }}</p>
+                        </div>
+
+                        <!-- Tanggal Selesai -->
+                        <div class="space-y-1.5">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tanggal Selesai</label>
+                            <div class="relative">
+                                <button type="button" @click="showCalSelesai = !showCalSelesai; showCalMulai = false"
+                                    class="flex w-full items-center gap-3 rounded-xl border-0 bg-gray-50 py-3 px-4 text-left ring-1 ring-inset ring-gray-200 transition focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:bg-gray-800 dark:ring-gray-700">
+                                    <span v-html="CalendarIcon()" class="text-gray-400 flex-shrink-0"></span>
+                                    <span class="flex-1 text-sm" :class="tanggalSelesaiValue ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-400 dark:text-gray-500'">
+                                        {{ tanggalSelesaiValue ? formatDisplay(tanggalSelesaiValue) : 'Pilih tanggal selesai' }}
+                                    </span>
+                                    <span v-html="ChevronDownIcon()" class="text-gray-400 flex-shrink-0 transition-transform" :class="showCalSelesai ? 'rotate-180' : ''"></span>
+                                </button>
+                                <div v-if="showCalSelesai" class="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                                    <DatePicker v-model="tanggalSelesaiValue" @dayclick="onSelectSelesai" color="indigo" is-expanded :min-date="tanggalMulaiValue ?? undefined" class="rounded-2xl" />
+                                </div>
+                            </div>
+                            <p v-if="jadwalForm.errors.tanggal_selesai" class="text-xs text-red-500">{{ jadwalForm.errors.tanggal_selesai }}</p>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button @click="closeJadwalModal" class="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">Batal</button>
+                            <button @click="saveJadwal" :disabled="jadwalForm.processing"
+                                class="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50">
+                                {{ jadwalForm.processing ? 'Menyimpan...' : 'Simpan Jadwal' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

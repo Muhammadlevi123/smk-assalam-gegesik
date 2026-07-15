@@ -190,7 +190,10 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/contact-messages/{contactMessage}', [ContactMessageController::class, 'show'])->name('admin.contact-messages.show');
     Route::delete('/contact-messages/{contactMessage}', [ContactMessageController::class, 'destroy'])->name('admin.contact-messages.destroy');
 
-    // Pendaftaran Routes
+    // Pendaftaran Routes — route 'jadwal' HARUS di atas '{pendaftaran}' biar tidak ketimpa model binding
+    Route::patch('/pendaftaran/jadwal', [AdminPendaftaranController::class, 'updateJadwal'])->name('admin.pendaftaran.update-jadwal');
+    Route::delete('/pendaftaran/jadwal', [AdminPendaftaranController::class, 'closeJadwal'])->name('admin.pendaftaran.close-jadwal');
+
     Route::get('/pendaftaran', [AdminPendaftaranController::class, 'index'])->name('admin.pendaftaran.index');
     Route::get('/pendaftaran/{pendaftaran}', [AdminPendaftaranController::class, 'show'])->name('admin.pendaftaran.show');
     Route::get('/pendaftaran/{pendaftaran}/edit', [AdminPendaftaranController::class, 'edit'])->name('admin.pendaftaran.edit');
