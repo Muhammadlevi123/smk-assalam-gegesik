@@ -2,7 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import NavUser from '@/components/NavUser.vue';
 import FooterUser from '@/components/FooterUser.vue';
-import { onMounted, onUnmounted, computed, ref, watch, nextTick } from 'vue';
+import { onMounted, onUnmounted, computed, ref, nextTick } from 'vue';
 
 interface KalenderItem {
     id:              number;
@@ -37,14 +37,11 @@ const getLocalDateStr = (d: Date): string =>
 const today = getLocalDateStr(new Date());
 
 // ─── Navigasi bulan ────────────────────────────────────────
-const getBulanPertama = () => {
-    if (props.kalender && props.kalender.length > 0)
-        return parseLocalDate(props.kalender[0].tanggal_mulai);
+const getBulanSekarang = () => {
     const t = new Date();
     return new Date(t.getFullYear(), t.getMonth(), 1);
 };
-const bulanTampil = ref(getBulanPertama());
-watch(() => props.kalender, () => { bulanTampil.value = getBulanPertama(); });
+const bulanTampil = ref(getBulanSekarang());
 
 const bulanLabel = computed(() =>
     BULAN_NAMA[bulanTampil.value.getMonth()] + ' ' + bulanTampil.value.getFullYear()
@@ -155,11 +152,37 @@ const gantiTahunAjaran = (id: number) => {
     router.get('/informasi/kalender-akademik', { tahun_ajaran_id: id }, { preserveScroll: false });
 };
 
-// ─── Format tanggal tabel ──────────────────────────────────
+// ─── Format tanggal ────────────────────────────────────────
 const formatTgl = (str: string) => {
     if (!str) return '-';
     const d = parseLocalDate(str);
     return d.getDate() + ' ' + BULAN_NAMA[d.getMonth()] + ' ' + d.getFullYear();
+};
+
+/**
+ * Format waktu pelaksanaan (satu kolom):
+ *  - Sama                : "1 Oktober 2026"
+ *  - Beda hari, 1 bulan  : "1 - 2 Oktober 2026"
+ *  - Beda bulan, 1 tahun : "1 Oktober - 1 Desember 2026"
+ *  - Beda tahun          : "30 Desember 2026 - 2 Januari 2027"
+ */
+const formatWaktuPelaksanaan = (mulai: string, selesai?: string | null) => {
+    if (!mulai) return '-';
+    if (!selesai || selesai === mulai) return formatTgl(mulai);
+
+    const m = parseLocalDate(mulai);
+    const s = parseLocalDate(selesai);
+
+    const sameYear  = m.getFullYear() === s.getFullYear();
+    const sameMonth = sameYear && m.getMonth() === s.getMonth();
+
+    if (sameMonth) {
+        return `${m.getDate()} - ${s.getDate()} ${BULAN_NAMA[s.getMonth()]} ${s.getFullYear()}`;
+    }
+    if (sameYear) {
+        return `${m.getDate()} ${BULAN_NAMA[m.getMonth()]} - ${s.getDate()} ${BULAN_NAMA[s.getMonth()]} ${s.getFullYear()}`;
+    }
+    return `${formatTgl(mulai)} - ${formatTgl(selesai)}`;
 };
 
 // ─── Lifecycle ─────────────────────────────────────────────
@@ -341,22 +364,14 @@ onUnmounted(() => {
                                         <tr>
                                             <th class="th-no">No</th>
                                             <th>Kegiatan</th>
-                                            <th>Tanggal Mulai</th>
-                                            <th>Tanggal Selesai</th>
+                                            <th>Waktu Pelaksanaan</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-for="(item, i) in kalender" :key="item.id" class="tr-row">
                                             <td class="td-no">{{ i + 1 }}</td>
                                             <td class="td-judul">{{ item.judul }}</td>
-                                            <td class="td-tgl">{{ formatTgl(item.tanggal_mulai) }}</td>
-                                            <td class="td-tgl">
-                                                {{
-                                                    item.tanggal_selesai && item.tanggal_selesai !== item.tanggal_mulai
-                                                        ? formatTgl(item.tanggal_selesai)
-                                                        : '-'
-                                                }}
-                                            </td>
+                                            <td class="td-tgl">{{ formatWaktuPelaksanaan(item.tanggal_mulai, item.tanggal_selesai) }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
