@@ -47,11 +47,9 @@ const formatDisplay = (date: Date | null): string => {
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-const toInputFormat = (date: Date): string => date.toISOString().split('T')[0];
-
 const onSelectMulai = (day: any) => {
     tanggalMulai.value      = day.date;
-    form.tanggal_mulai      = toInputFormat(day.date);
+    form.tanggal_mulai      = day.id;   // langsung "YYYY-MM-DD"
     showCalendarMulai.value = false;
     if (tanggalSelesai.value && tanggalSelesai.value < day.date) {
         tanggalSelesai.value = null;
@@ -61,7 +59,7 @@ const onSelectMulai = (day: any) => {
 
 const onSelectSelesai = (day: any) => {
     tanggalSelesai.value      = day.date;
-    form.tanggal_selesai      = toInputFormat(day.date);
+    form.tanggal_selesai      = day.id;   // langsung "YYYY-MM-DD"
     showCalendarSelesai.value = false;
 };
 
