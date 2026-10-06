@@ -40,20 +40,29 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Edit Agenda',       href: `/admin/kalender-akademik/${props.kalenderAkademik.id}/edit` },
 ];
 
+// ✅ Ambil hanya "YYYY-MM-DD" (buang bagian jam/timezone jika ada)
+const cleanDate = (s: string): string => (s ?? '').substring(0, 10);
+
+// ✅ Parse "YYYY-MM-DD" sebagai tanggal LOKAL (bukan UTC) agar tidak bergeser 1 hari
+const parseDate = (s: string): Date => {
+    const [y, m, d] = cleanDate(s).split('-').map(Number);
+    return new Date(y, m - 1, d);
+};
+
 const form = useForm({
     judul:           props.kalenderAkademik.judul,
     tahun_ajaran_id: Number(props.kalenderAkademik.tahun_ajaran_id),
-    tanggal_mulai:   props.kalenderAkademik.tanggal_mulai,
-    tanggal_selesai: props.kalenderAkademik.tanggal_selesai,
+    tanggal_mulai:   cleanDate(props.kalenderAkademik.tanggal_mulai),
+    tanggal_selesai: cleanDate(props.kalenderAkademik.tanggal_selesai),
     include_weekend: props.kalenderAkademik.include_weekend ?? false,
     previous_url:    props.previous_url,
 });
 
 const tanggalMulai = ref<Date | null>(
-    props.kalenderAkademik.tanggal_mulai ? new Date(props.kalenderAkademik.tanggal_mulai) : null
+    props.kalenderAkademik.tanggal_mulai ? parseDate(props.kalenderAkademik.tanggal_mulai) : null
 );
 const tanggalSelesai = ref<Date | null>(
-    props.kalenderAkademik.tanggal_selesai ? new Date(props.kalenderAkademik.tanggal_selesai) : null
+    props.kalenderAkademik.tanggal_selesai ? parseDate(props.kalenderAkademik.tanggal_selesai) : null
 );
 
 const showCalendarMulai   = ref(false);
@@ -64,11 +73,9 @@ const formatDisplay = (date: Date | null): string => {
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-const toInputFormat = (date: Date): string => date.toISOString().split('T')[0];
-
 const onSelectMulai = (day: any) => {
     tanggalMulai.value      = day.date;
-    form.tanggal_mulai      = toInputFormat(day.date);
+    form.tanggal_mulai      = day.id;   // langsung "YYYY-MM-DD" tanpa konversi timezone
     showCalendarMulai.value = false;
     if (tanggalSelesai.value && tanggalSelesai.value < day.date) {
         tanggalSelesai.value = null;
@@ -78,7 +85,7 @@ const onSelectMulai = (day: any) => {
 
 const onSelectSelesai = (day: any) => {
     tanggalSelesai.value      = day.date;
-    form.tanggal_selesai      = toInputFormat(day.date);
+    form.tanggal_selesai      = day.id;   // langsung "YYYY-MM-DD" tanpa konversi timezone
     showCalendarSelesai.value = false;
 };
 
@@ -90,8 +97,8 @@ const closeAll = () => {
 const hasChanges = computed(() => {
     return form.judul           !== props.kalenderAkademik.judul
         || form.tahun_ajaran_id !== Number(props.kalenderAkademik.tahun_ajaran_id)
-        || form.tanggal_mulai   !== props.kalenderAkademik.tanggal_mulai
-        || form.tanggal_selesai !== props.kalenderAkademik.tanggal_selesai
+        || form.tanggal_mulai   !== cleanDate(props.kalenderAkademik.tanggal_mulai)
+        || form.tanggal_selesai !== cleanDate(props.kalenderAkademik.tanggal_selesai)
         || form.include_weekend !== (props.kalenderAkademik.include_weekend ?? false);
 });
 
@@ -99,7 +106,7 @@ const submit = () => {
     form.put(`/admin/kalender-akademik/${props.kalenderAkademik.id}`);
 };
 
-const formatDateOnly = (d: string) => new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+const formatDateOnly = (d: string) => parseDate(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
 const formatDate     = (d: string) => new Date(d).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 </script>
 
