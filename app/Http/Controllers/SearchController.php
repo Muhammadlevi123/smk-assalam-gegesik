@@ -8,17 +8,31 @@ use App\Models\Prestasi;
 use App\Models\Guru;
 use App\Models\TenagaKependidikan;
 use App\Models\Organisasi;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SearchController extends Controller
 {
+    /** Format tanggal aman: bekerja baik untuk string maupun objek Carbon. */
+    private function fmt($date): ?string
+    {
+        return $date ? Carbon::parse($date)->translatedFormat('d M Y') : null;
+    }
+
+    private function snippet(?string $html, int $limit = 120): string
+    {
+        return Str::limit(trim(strip_tags((string) $html)), $limit, '...');
+    }
+
     public function index(Request $request): Response
     {
-        $q = trim($request->get('q', ''));
+        $q = trim((string) $request->get('q', ''));
 
-        if (!$q || strlen($q) < 2) {
+        if ($q === '' || mb_strlen($q) < 2) {
             return Inertia::render('landing/Search', [
                 'query'   => $q,
                 'results' => [],
@@ -26,10 +40,17 @@ class SearchController extends Controller
             ]);
         }
 
-        // ── Berita ────────────────────────────────────────────────
-        $berita = Berita::where('judul',    'LIKE', "%{$q}%")
-            ->orWhere('isi',      'LIKE', "%{$q}%")
-            ->orWhere('kategori', 'LIKE', "%{$q}%")
+        // Escape % dan _ supaya tidak dianggap wildcard oleh LIKE
+        $like = '%' . addcslashes($q, '%_\\') . '%';
+
+        // ── Berita (hanya yang sudah terbit, sama seperti halaman berita) ──
+        $berita = Berita::where('status', 'publish')
+            ->where('tanggal_publikasi', '<=', Carbon::now())
+            ->where(function ($w) use ($like) {
+                $w->where('judul', 'LIKE', $like)
+                    ->orWhere('isi', 'LIKE', $like)
+                    ->orWhere('kategori', 'LIKE', $like);
+            })
             ->orderBy('tanggal_publikasi', 'desc')
             ->limit(5)
             ->get()
@@ -40,17 +61,20 @@ class SearchController extends Controller
                 'title'      => $b->judul,
                 'excerpt'    => $b->kategori
                     ? "Kategori: {$b->kategori}"
-                    : str(strip_tags($b->isi ?? ''))->limit(120),
+                    : $this->snippet($b->isi),
                 'url'        => "/informasi/berita/{$b->slug}",
-                'date'       => $b->tanggal_publikasi?->format('d M Y'),
+                'date'       => $this->fmt($b->tanggal_publikasi),
             ]);
 
-        // ── Artikel ───────────────────────────────────────────────
-        $artikel = Artikel::where('judul',    'LIKE', "%{$q}%")
-            ->orWhere('isi',      'LIKE', "%{$q}%")
-            ->orWhere('kategori', 'LIKE', "%{$q}%")
-            ->orWhere('penulis',  'LIKE', "%{$q}%")
-            ->orderBy('tanggal_publikasi', 'desc')
+        // ── Artikel (hanya yang publish) ──────────────────────────
+        $artikel = Artikel::where('status', 'publish')
+            ->where(function ($w) use ($like) {
+                $w->where('judul', 'LIKE', $like)
+                    ->orWhere('isi', 'LIKE', $like)
+                    ->orWhere('kategori', 'LIKE', $like)
+                    ->orWhere('penulis', 'LIKE', $like);
+            })
+            ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get()
             ->map(fn ($a) => [
@@ -62,38 +86,65 @@ class SearchController extends Controller
                     $a->penulis  ? "Penulis: {$a->penulis}"   : null,
                     $a->kategori ? "Kategori: {$a->kategori}" : null,
                 ])->filter()->implode(' · ')
-                    ?: str(strip_tags($a->isi ?? ''))->limit(120),
+                    ?: $this->snippet($a->isi),
                 'url'        => "/informasi/artikel/{$a->slug}",
-                'date'       => $a->tanggal_publikasi?->format('d M Y'),
+                'date'       => $this->fmt($a->tanggal_publikasi ?? $a->created_at),
             ]);
 
-        // ── Prestasi ──────────────────────────────────────────────
-        $prestasi = Prestasi::where('nama_lomba',    'LIKE', "%{$q}%")
-            ->orWhere('deskripsi',    'LIKE', "%{$q}%")
-            ->orWhere('penyelenggara','LIKE', "%{$q}%")
-            ->orWhere('tingkat',      'LIKE', "%{$q}%")
-            ->orWhere('juara',        'LIKE', "%{$q}%")
-            ->latest()
+        // ── Prestasi (nama lomba, penyelenggara, juara, dan nama siswa) ──
+        $prestasi = Prestasi::with('siswa')
+            ->where(function ($w) use ($like) {
+                $w->where('nama_lomba', 'LIKE', $like)
+                    ->orWhere('deskripsi', 'LIKE', $like)
+                    ->orWhere('penyelenggara', 'LIKE', $like)
+                    ->orWhere('tingkat', 'LIKE', $like)
+                    ->orWhere('juara', 'LIKE', $like)
+                    ->orWhereHas('siswa', fn ($s) => $s->where('nama', 'LIKE', $like));
+
+                // Siswa input manual (aman kalau migration belum dijalankan)
+                if (Schema::hasColumn('prestasi', 'siswa_manual')) {
+                    $w->orWhere('siswa_manual', 'LIKE', $like);
+                }
+            })
+            ->orderBy('tanggal', 'desc')
             ->limit(5)
             ->get()
-            ->map(fn ($p) => [
-                'type'       => 'prestasi',
-                'type_label' => 'Prestasi',
-                'id'         => $p->id,
-                'title'      => $p->nama_lomba,
-                'excerpt'    => collect([
-                    $p->juara        ? "Juara {$p->juara}"     : null,
-                    $p->tingkat      ? "Tingkat {$p->tingkat}" : null,
-                    $p->penyelenggara ?? null,
-                ])->filter()->implode(' · '),
-                'url'        => '/prestasi',
-                'date'       => $p->tanggal?->format('d M Y'),
-            ]);
+            ->map(function ($p) {
+                $namaSiswa = $p->siswa->pluck('nama')
+                    ->merge(collect($p->siswa_manual ?? [])->pluck('nama'))
+                    ->filter()
+                    ->take(3)
+                    ->implode(', ');
+
+                return [
+                    'type'       => 'prestasi',
+                    'type_label' => 'Prestasi',
+                    'id'         => $p->id,
+                    'title'      => $p->nama_lomba,
+                    'excerpt'    => collect([
+                        $namaSiswa     ? "Siswa: {$namaSiswa}"          : null,
+                        $p->juara,                                       // sudah berisi kata "Juara"
+                        $p->tingkat    ? 'Tingkat ' . ucfirst($p->tingkat) : null,
+                        $p->penyelenggara,
+                    ])->filter()->implode(' · '),
+                    'url'        => '/prestasi',
+                    'date'       => $this->fmt($p->tanggal),
+                ];
+            });
 
         // ── Guru ──────────────────────────────────────────────────
+        // ❌ Dulu: ->orWhere('nip', ...) → error karena tabel guru TIDAK punya kolom nip.
+        $guruKolom = array_values(array_filter(
+            ['nama', 'nip', 'nuptk'],
+            fn ($col) => Schema::hasColumn((new Guru)->getTable(), $col)
+        ));
+
         $guru = Guru::with(['mataPelajaran'])
-            ->where('nama', 'LIKE', "%{$q}%")
-            ->orWhere('nip',  'LIKE', "%{$q}%")
+            ->where(function ($w) use ($guruKolom, $like) {
+                foreach ($guruKolom as $col) {
+                    $w->orWhere($col, 'LIKE', $like);
+                }
+            })
             ->limit(5)
             ->get()
             ->map(fn ($g) => [
@@ -103,14 +154,16 @@ class SearchController extends Controller
                 'title'      => $g->nama,
                 'excerpt'    => $g->mataPelajaran->isNotEmpty()
                     ? 'Mengajar: ' . $g->mataPelajaran->pluck('nama')->unique()->implode(', ')
-                    : ($g->jenis_kelamin ?? '-'),
+                    : 'Tenaga pendidik',
                 'url'        => '/profil/tenaga-pendidik',
                 'date'       => null,
             ]);
 
         // ── Tenaga Kependidikan ───────────────────────────────────
-        $tenaga = TenagaKependidikan::where('nama',    'LIKE', "%{$q}%")
-            ->orWhere('jabatan', 'LIKE', "%{$q}%")
+        $tenaga = TenagaKependidikan::where(function ($w) use ($like) {
+                $w->where('nama', 'LIKE', $like)
+                    ->orWhere('jabatan', 'LIKE', $like);
+            })
             ->limit(5)
             ->get()
             ->map(fn ($t) => [
@@ -124,10 +177,12 @@ class SearchController extends Controller
             ]);
 
         // ── Organisasi / Ekskul ───────────────────────────────────
-        $organisasi = Organisasi::where('nama',      'LIKE', "%{$q}%")
-            ->orWhere('deskripsi',  'LIKE', "%{$q}%")
-            ->orWhere('pembina',    'LIKE', "%{$q}%")
-            ->orWhere('jenis',      'LIKE', "%{$q}%")
+        $organisasi = Organisasi::where(function ($w) use ($like) {
+                $w->where('nama', 'LIKE', $like)
+                    ->orWhere('deskripsi', 'LIKE', $like)
+                    ->orWhere('pembina', 'LIKE', $like)
+                    ->orWhere('jenis', 'LIKE', $like);
+            })
             ->orderBy('nama')
             ->limit(5)
             ->get()
@@ -137,13 +192,14 @@ class SearchController extends Controller
                 'id'         => $o->id,
                 'title'      => $o->nama,
                 'excerpt'    => collect([
-                    $o->pembina        ? "Pembina: {$o->pembina}"  : null,
+                    $o->pembina        ? "Pembina: {$o->pembina}"       : null,
                     $o->jadwal_latihan ? "Jadwal: {$o->jadwal_latihan}" : null,
                     !$o->pembina && !$o->jadwal_latihan && $o->deskripsi
-                        ? str(strip_tags($o->deskripsi))->limit(100)
+                        ? $this->snippet($o->deskripsi, 100)
                         : null,
-                ])->filter()->implode(' · ') ?: $o->jenis,
-                'url'        => $o->slug ? "/profil/organisasi/{$o->slug}" : '/profil/organisasi',
+                ])->filter()->implode(' · ') ?: (string) $o->jenis,
+                // Route "/profil/organisasi" tanpa slug tidak ada, jadi fallback ke beranda
+                'url'        => $o->slug ? "/profil/organisasi/{$o->slug}" : '/',
                 'date'       => null,
             ]);
 

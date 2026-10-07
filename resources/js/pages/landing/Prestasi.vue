@@ -120,7 +120,7 @@ const sectionList = computed(() => [
     { key: 'internasional', label: 'Internasional', data: allData.value.filter(p => p.tingkat.toLowerCase() === 'internasional'), count: props.stats?.internasional ?? 0 },
     { key: 'nasional',      label: 'Nasional',      data: allData.value.filter(p => p.tingkat.toLowerCase() === 'nasional'),      count: props.stats?.nasional ?? 0 },
     { key: 'provinsi',      label: 'Provinsi',      data: allData.value.filter(p => p.tingkat.toLowerCase() === 'provinsi'),      count: props.stats?.provinsi ?? 0 },
-    { key: 'kabupaten',     label: 'Kab./Kota',     data: allData.value.filter(p => ['kabupaten','kota'].includes(p.tingkat.toLowerCase())), count: props.stats?.kabupaten ?? 0 },
+    { key: 'kabupaten',     label: 'Kab/Kota',     data: allData.value.filter(p => ['kabupaten','kota'].includes(p.tingkat.toLowerCase())), count: props.stats?.kabupaten ?? 0 },
 ].filter(s => s.count > 0));
 
 const scrollLeft  = (id: string) => document.getElementById(id)?.scrollBy({ left: -300, behavior: 'smooth' });

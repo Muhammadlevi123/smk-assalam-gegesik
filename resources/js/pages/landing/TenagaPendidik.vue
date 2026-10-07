@@ -24,12 +24,29 @@ const props = defineProps<{
     status_tahun_ajaran?: 'berjalan' | 'akan-datang' | 'selesai' | 'tidak ada';
 }>();
 
+// ── Pengurutan tenaga kependidikan ───────────────────────────────
+// Urutan: 1) Kepala Sekolah  2) Bendahara BOS  3) Bendahara  4) lainnya
+// Lainnya tetap mengikuti urutan dari server (abjad nama).
+const normalisasi = (s?: string) =>
+    (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+const prioritasJabatan = (jabatan?: string): number => {
+    const j = normalisasi(jabatan);
+    if (j === 'kepala sekolah') return 0;     // persis "Kepala Sekolah" (Wakil Kepala Sekolah tidak ikut)
+    if (j === 'bendahara bos')  return 1;
+    if (j.startsWith('bendahara')) return 2;  // "Bendahara" dan variannya
+    return 3;
+};
+
 const tkRows = computed(() =>
-    (props.tenaga_kependidikan ?? []).map((t, i) => ({
-        no: i + 1,
-        nama: t.nama,
-        jabatan: t.jabatan || '-',
-    }))
+    (props.tenaga_kependidikan ?? [])
+        .map((t, idx) => ({ t, idx, prioritas: prioritasJabatan(t.jabatan) }))
+        .sort((a, b) => a.prioritas - b.prioritas || a.idx - b.idx)
+        .map(({ t }, i) => ({
+            no: i + 1,
+            nama: t.nama,
+            jabatan: t.jabatan || '-',
+        }))
 );
 
 const guruRows = computed(() =>

@@ -36,7 +36,7 @@ import { Link } from '@inertiajs/vue3';
                     <h4 class="text-lg font-semibold mb-4 text-white">Tautan</h4>
                     <div class="space-y-3 text-gray-300">
                         <Link href="/profil/sejarah" class="block hover:text-white transition-colors">Tentang Kami</Link>
-                        <Link href="/profil/prestasi" class="block hover:text-white transition-colors">Prestasi</Link>
+                        <Link href="/prestasi" class="block hover:text-white transition-colors">Prestasi</Link>
                         <Link href="/informasi/artikel" class="block hover:text-white transition-colors">Artikel</Link>
                         <Link href="/informasi/berita" class="block hover:text-white transition-colors">Berita</Link>
                         <Link href="/informasi/kalender-akademik" class="block hover:text-white transition-colors">Kalender Akademik
