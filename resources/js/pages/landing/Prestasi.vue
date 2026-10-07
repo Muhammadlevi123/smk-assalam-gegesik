@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import NavUser from '@/components/NavUser.vue';
 import FooterUser from '@/components/FooterUser.vue';
 import { onMounted, ref, computed, watch, nextTick } from 'vue';
 
+interface SiswaItem {
+    id: number | null;                 // null jika siswa input manual
+    nama: string;
+    angkatan?: number | string | null;
+    manual?: boolean;
+}
 interface PrestasiItem {
     id: number;
     nama_lomba: string;
@@ -12,9 +18,9 @@ interface PrestasiItem {
     penyelenggara: string;
     tanggal: string;
     tanggal_formatted: string;
-    nama_siswa: string;
-    foto?: string;
-    siswa: { id: number; nama: string }[];
+    nama_siswa: string;                // gabungan siswa DB + manual
+    foto?: string | null;
+    siswa: SiswaItem[];
 }
 interface Stats {
     internasional: number;
@@ -62,14 +68,23 @@ const getIcon = (juara: string) => {
 const defaultImg = '/storage/img/logo/logo.png';
 const allData    = computed(() => props.prestasi ?? []);
 
+// ── Nama siswa (DB + manual) ringkas: "A, B +3 lainnya" ──────────
+const namaRingkas = (item: PrestasiItem): string => {
+    const names = (item.siswa ?? []).map(s => s.nama).filter(Boolean);
+    if (names.length === 0) return item.nama_siswa || '';
+    if (names.length <= 2) return names.join(', ');
+    return `${names.slice(0, 2).join(', ')} +${names.length - 2} lainnya`;
+};
+
 const searchResult = computed(() => {
     const q = searchInput.value.toLowerCase().trim();
     if (!q) return [];
     return allData.value.filter(p =>
         p.nama_lomba.toLowerCase().includes(q) ||
-        p.nama_siswa.toLowerCase().includes(q) ||
+        (p.nama_siswa ?? '').toLowerCase().includes(q) ||
         (p.penyelenggara?.toLowerCase() ?? '').includes(q) ||
-        p.tingkat.toLowerCase().includes(q)
+        p.tingkat.toLowerCase().includes(q) ||
+        (p.juara ?? '').toLowerCase().includes(q)
     );
 });
 const isSearching = computed(() => searchInput.value.trim().length > 0);
@@ -159,7 +174,7 @@ watch([aktifNav, isSearching], () => {
                             <button v-for="s in sectionList" :key="s.key" class="nav-cat" :class="{ active: aktifNav === s.key }" @click="setKategori(s.key)">{{ s.label.toUpperCase() }}</button>
                         </nav>
                         <form @submit.prevent class="nav-search">
-                            <input v-model="searchInput" type="text" placeholder="Cari prestasi..." class="nav-search-input" />
+                            <input v-model="searchInput" type="text" placeholder="Cari prestasi atau siswa..." class="nav-search-input" />
                             <button v-if="isSearching" type="button" class="nav-search-btn" @click="clearSearch">✕</button>
                             <span v-else class="nav-search-btn">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -196,7 +211,7 @@ watch([aktifNav, isSearching], () => {
                                         <div class="fcard-info">
                                             <p class="fcard-juara">{{ item.juara }}</p>
                                             <h3 class="fcard-nama">{{ item.nama_lomba }}</h3>
-                                            <p class="fcard-meta">👤 {{ item.nama_siswa || '—' }}</p>
+                                            <p class="fcard-meta" :title="item.nama_siswa">👤 {{ namaRingkas(item) || '—' }}</p>
                                             <p class="fcard-meta">🏢 {{ item.penyelenggara || '—' }}</p>
                                             <p class="fcard-meta">📅 {{ item.tanggal_formatted }}</p>
                                         </div>
@@ -238,7 +253,7 @@ watch([aktifNav, isSearching], () => {
                                                 <span class="galeri-badge-inline sm" :style="{ background: getW(row[0].tingkat).grad }">{{ row[0].tingkat }}</span>
                                                 <p class="galeri-juara">{{ row[0].juara }}</p>
                                                 <h3 class="galeri-nama sm">{{ row[0].nama_lomba }}</h3>
-                                                <p class="galeri-sub">👤 {{ row[0].nama_siswa || '—' }}</p>
+                                                <p class="galeri-sub" :title="row[0].nama_siswa">👤 {{ namaRingkas(row[0]) || '—' }}</p>
                                             </div></div>
                                         </div>
                                         <div v-if="row[1]" class="kb">
@@ -248,7 +263,7 @@ watch([aktifNav, isSearching], () => {
                                                 <span class="galeri-badge-inline sm" :style="{ background: getW(row[1].tingkat).grad }">{{ row[1].tingkat }}</span>
                                                 <p class="galeri-juara">{{ row[1].juara }}</p>
                                                 <h3 class="galeri-nama sm">{{ row[1].nama_lomba }}</h3>
-                                                <p class="galeri-sub">👤 {{ row[1].nama_siswa || '—' }}</p>
+                                                <p class="galeri-sub" :title="row[1].nama_siswa">👤 {{ namaRingkas(row[1]) || '—' }}</p>
                                             </div></div>
                                         </div>
                                         <!-- Stack 2 kecil numpuk vertikal -->
@@ -274,7 +289,6 @@ watch([aktifNav, isSearching], () => {
 
                                     <!-- BARIS B (genap): [stack kecil][besar][besar] -->
                                     <template v-else>
-                                        <!-- Stack 2 kecil numpuk vertikal kiri -->
                                         <div class="kst">
                                             <div v-if="row[0]" class="ks">
                                                 <img :src="row[0].foto ? '/storage/' + row[0].foto : defaultImg" :alt="row[0].nama_lomba" />
@@ -300,7 +314,7 @@ watch([aktifNav, isSearching], () => {
                                                 <span class="galeri-badge-inline sm" :style="{ background: getW(row[2].tingkat).grad }">{{ row[2].tingkat }}</span>
                                                 <p class="galeri-juara">{{ row[2].juara }}</p>
                                                 <h3 class="galeri-nama sm">{{ row[2].nama_lomba }}</h3>
-                                                <p class="galeri-sub">👤 {{ row[2].nama_siswa || '—' }}</p>
+                                                <p class="galeri-sub" :title="row[2].nama_siswa">👤 {{ namaRingkas(row[2]) || '—' }}</p>
                                             </div></div>
                                         </div>
                                         <div v-if="row[3]" class="kb">
@@ -310,7 +324,7 @@ watch([aktifNav, isSearching], () => {
                                                 <span class="galeri-badge-inline sm" :style="{ background: getW(row[3].tingkat).grad }">{{ row[3].tingkat }}</span>
                                                 <p class="galeri-juara">{{ row[3].juara }}</p>
                                                 <h3 class="galeri-nama sm">{{ row[3].nama_lomba }}</h3>
-                                                <p class="galeri-sub">👤 {{ row[3].nama_siswa || '—' }}</p>
+                                                <p class="galeri-sub" :title="row[3].nama_siswa">👤 {{ namaRingkas(row[3]) || '—' }}</p>
                                             </div></div>
                                         </div>
                                     </template>
@@ -350,7 +364,7 @@ watch([aktifNav, isSearching], () => {
                                         <span class="galeri-badge-inline" :style="{ background: getW(galeri[0].tingkat).grad }">{{ galeri[0].tingkat }}</span>
                                         <p class="galeri-juara">{{ galeri[0].juara }}</p>
                                         <h3 class="galeri-nama">{{ galeri[0].nama_lomba }}</h3>
-                                        <p class="galeri-sub">👤 {{ galeri[0].nama_siswa || '—' }}</p>
+                                        <p class="galeri-sub" :title="galeri[0].nama_siswa">👤 {{ namaRingkas(galeri[0]) || '—' }}</p>
                                         <p class="galeri-sub">🏢 {{ galeri[0].penyelenggara || '—' }}</p>
                                         <p class="galeri-sub">📅 {{ galeri[0].tanggal_formatted }}</p>
                                     </div></div>
@@ -362,7 +376,7 @@ watch([aktifNav, isSearching], () => {
                                         <span class="galeri-badge-inline sm" :style="{ background: getW(galeri[1].tingkat).grad }">{{ galeri[1].tingkat }}</span>
                                         <p class="galeri-juara">{{ galeri[1].juara }}</p>
                                         <h3 class="galeri-nama sm">{{ galeri[1].nama_lomba }}</h3>
-                                        <p class="galeri-sub">👤 {{ galeri[1].nama_siswa || '—' }}</p>
+                                        <p class="galeri-sub" :title="galeri[1].nama_siswa">👤 {{ namaRingkas(galeri[1]) || '—' }}</p>
                                         <p class="galeri-sub">📅 {{ galeri[1].tanggal_formatted }}</p>
                                     </div></div>
                                 </div>
@@ -371,7 +385,7 @@ watch([aktifNav, isSearching], () => {
                                     <div class="galeri-overlay"><div class="galeri-info compact">
                                         <span class="galeri-icon xs">{{ getIcon(galeri[3].juara) }}</span>
                                         <h3 class="galeri-nama xs">{{ galeri[3].nama_lomba }}</h3>
-                                        <p class="galeri-sub xs">{{ galeri[3].nama_siswa || '—' }}</p>
+                                        <p class="galeri-sub xs" :title="galeri[3].nama_siswa">{{ namaRingkas(galeri[3]) || '—' }}</p>
                                     </div></div>
                                     <span class="galeri-badge-abs" :style="{ background: getW(galeri[3].tingkat).grad }">{{ galeri[3].tingkat }}</span>
                                 </div>
@@ -380,7 +394,7 @@ watch([aktifNav, isSearching], () => {
                                     <div class="galeri-overlay"><div class="galeri-info compact">
                                         <span class="galeri-icon xs">{{ getIcon(galeri[4].juara) }}</span>
                                         <h3 class="galeri-nama xs">{{ galeri[4].nama_lomba }}</h3>
-                                        <p class="galeri-sub xs">{{ galeri[4].nama_siswa || '—' }}</p>
+                                        <p class="galeri-sub xs" :title="galeri[4].nama_siswa">{{ namaRingkas(galeri[4]) || '—' }}</p>
                                     </div></div>
                                     <span class="galeri-badge-abs" :style="{ background: getW(galeri[4].tingkat).grad }">{{ galeri[4].tingkat }}</span>
                                 </div>
@@ -391,7 +405,7 @@ watch([aktifNav, isSearching], () => {
                                         <span class="galeri-badge-inline sm" :style="{ background: getW(galeri[2].tingkat).grad }">{{ galeri[2].tingkat }}</span>
                                         <p class="galeri-juara">{{ galeri[2].juara }}</p>
                                         <h3 class="galeri-nama sm">{{ galeri[2].nama_lomba }}</h3>
-                                        <p class="galeri-sub">👤 {{ galeri[2].nama_siswa || '—' }}</p>
+                                        <p class="galeri-sub" :title="galeri[2].nama_siswa">👤 {{ namaRingkas(galeri[2]) || '—' }}</p>
                                         <p class="galeri-sub">📅 {{ galeri[2].tanggal_formatted }}</p>
                                     </div></div>
                                 </div>
@@ -400,7 +414,7 @@ watch([aktifNav, isSearching], () => {
                                     <div class="galeri-overlay"><div class="galeri-info compact">
                                         <span class="galeri-icon xs">{{ getIcon(galeri[5].juara) }}</span>
                                         <h3 class="galeri-nama xs">{{ galeri[5].nama_lomba }}</h3>
-                                        <p class="galeri-sub xs">{{ galeri[5].nama_siswa || '—' }}</p>
+                                        <p class="galeri-sub xs" :title="galeri[5].nama_siswa">{{ namaRingkas(galeri[5]) || '—' }}</p>
                                     </div></div>
                                     <span class="galeri-badge-abs" :style="{ background: getW(galeri[5].tingkat).grad }">{{ galeri[5].tingkat }}</span>
                                 </div>
@@ -409,7 +423,7 @@ watch([aktifNav, isSearching], () => {
                                     <div class="galeri-overlay"><div class="galeri-info compact">
                                         <span class="galeri-icon xs">{{ getIcon(galeri[6].juara) }}</span>
                                         <h3 class="galeri-nama xs">{{ galeri[6].nama_lomba }}</h3>
-                                        <p class="galeri-sub xs">{{ galeri[6].nama_siswa || '—' }}</p>
+                                        <p class="galeri-sub xs" :title="galeri[6].nama_siswa">{{ namaRingkas(galeri[6]) || '—' }}</p>
                                     </div></div>
                                     <span class="galeri-badge-abs" :style="{ background: getW(galeri[6].tingkat).grad }">{{ galeri[6].tingkat }}</span>
                                 </div>
@@ -446,17 +460,17 @@ watch([aktifNav, isSearching], () => {
                                         <p class="hcard-juara">{{ item.juara }}</p>
                                         <h3 class="hcard-nama">{{ item.nama_lomba }}</h3>
                                         <div class="hcard-meta">
-                                            <p class="hcard-meta-item">
+                                            <p class="hcard-meta-item" :title="item.nama_siswa">
                                                 <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                                {{ item.nama_siswa || '—' }}
+                                                <span class="hcard-meta-text">{{ namaRingkas(item) || '—' }}</span>
                                             </p>
                                             <p class="hcard-meta-item">
                                                 <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5"/></svg>
-                                                {{ item.penyelenggara || '—' }}
+                                                <span class="hcard-meta-text">{{ item.penyelenggara || '—' }}</span>
                                             </p>
                                             <p class="hcard-meta-item">
                                                 <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                                {{ item.tanggal_formatted }}
+                                                <span class="hcard-meta-text">{{ item.tanggal_formatted }}</span>
                                             </p>
                                         </div>
                                     </div>
@@ -502,7 +516,7 @@ watch([aktifNav, isSearching], () => {
 .nav-cat.active{color:var(--g700);font-weight:800}
 .nav-cat.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--g600)}
 .nav-search{display:flex;align-items:center;flex-shrink:0;border-left:1px solid var(--gray200)}
-.nav-search-input{background:transparent;border:none;outline:none;color:var(--gray700);font-size:12px;font-family:var(--fb);padding:8px 12px;width:150px}
+.nav-search-input{background:transparent;border:none;outline:none;color:var(--gray700);font-size:12px;font-family:var(--fb);padding:8px 12px;width:170px}
 .nav-search-input::placeholder{color:var(--gray400)}
 .nav-search-btn{background:transparent;border:none;border-left:1px solid var(--gray200);cursor:pointer;color:var(--gray400);padding:10px 12px;font-size:12px;display:flex;align-items:center;transition:color .2s}
 .nav-search-btn:hover{color:var(--gray700)}
@@ -529,7 +543,7 @@ watch([aktifNav, isSearching], () => {
 .g-sm{grid-column:auto;grid-row:auto}
 .galeri-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.3) 50%,transparent 100%);opacity:0;transition:opacity .3s;display:flex;align-items:flex-end;padding:14px}
 .galeri-item:hover .galeri-overlay{opacity:1}
-.galeri-info{display:flex;flex-direction:column;gap:3px;width:100%}
+.galeri-info{display:flex;flex-direction:column;gap:3px;width:100%;min-width:0}
 .galeri-info.compact{gap:2px}
 .galeri-icon{font-size:28px;margin-bottom:4px}
 .galeri-icon.sm{font-size:20px;margin-bottom:2px}
@@ -540,8 +554,9 @@ watch([aktifNav, isSearching], () => {
 .galeri-nama{font-family:var(--fd);font-size:15px;font-weight:700;color:white;line-height:1.25;margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .galeri-nama.sm{font-size:13px}
 .galeri-nama.xs{font-size:11px;-webkit-line-clamp:1}
-.galeri-sub{font-size:11px;color:rgba(255,255,255,.8);margin:0}
-.galeri-sub.xs{font-size:9px}
+/* nama siswa bisa panjang (regu / banyak siswa) → batasi 2 baris */
+.galeri-sub{font-size:11px;color:rgba(255,255,255,.8);margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;word-break:break-word}
+.galeri-sub.xs{font-size:9px;-webkit-line-clamp:1}
 .galeri-badge-abs{position:absolute;top:8px;right:8px;color:white;font-size:8px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px}
 
 /* HORIZONTAL SCROLL */
@@ -559,8 +574,9 @@ watch([aktifNav, isSearching], () => {
 .hcard-juara{font-size:10px;font-weight:800;color:var(--g700);text-transform:uppercase;letter-spacing:.07em;margin:0}
 .hcard-nama{font-family:var(--fd);font-size:13px;font-weight:700;color:var(--gray900);line-height:1.35;margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .hcard-meta{display:flex;flex-direction:column;gap:4px;margin-top:4px;padding-top:8px;border-top:1px solid var(--gray100)}
-.hcard-meta-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--gray500)}
-.hcard-meta-item svg{flex-shrink:0;color:var(--gray400)}
+.hcard-meta-item{display:flex;align-items:flex-start;gap:5px;font-size:10px;color:var(--gray500);margin:0}
+.hcard-meta-item svg{flex-shrink:0;color:var(--gray400);margin-top:2px}
+.hcard-meta-text{min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;word-break:break-word}
 
 /* SEARCH */
 .filter-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -578,17 +594,16 @@ watch([aktifNav, isSearching], () => {
 .fcard-hover-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.1) 55%,transparent 100%);opacity:0;transition:opacity .3s;display:flex;flex-direction:column;justify-content:flex-end;padding:14px}
 .fcard:hover .fcard-hover-overlay{opacity:1}
 .fcard-icon{font-size:22px;margin-bottom:4px}
-.fcard-info{display:flex;flex-direction:column;gap:3px}
+.fcard-info{display:flex;flex-direction:column;gap:3px;min-width:0}
 .fcard-juara{font-size:10px;font-weight:800;color:#86efac;text-transform:uppercase;letter-spacing:.07em;margin:0}
 .fcard-nama{font-family:var(--fd);font-size:13px;font-weight:700;color:white;line-height:1.3;margin:2px 0 4px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-.fcard-meta{font-size:10px;color:rgba(255,255,255,.8);margin:0 0 2px}
+.fcard-meta{font-size:10px;color:rgba(255,255,255,.8);margin:0 0 2px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;word-break:break-word}
 .fcard-badge{position:absolute;top:8px;left:8px;color:white;font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px}
 
 /* ══ KATEGORI ROWS ══════════════════════════════════════ */
 .kat-rows{display:flex;flex-direction:column;gap:3px}
 .kat-baris{
     display:grid;
-    /* Baris A: [kb 2fr][kb 2fr][kst 1fr] — override per baris pakai class */
     height:260px;
     gap:3px;
     width:100%;

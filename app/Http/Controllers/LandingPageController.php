@@ -78,6 +78,66 @@ class LandingPageController extends Controller
     }
 
     // =====================================================
+    // HELPER: gabungkan siswa database + siswa input manual
+    // =====================================================
+    private function siswaGabungan(Prestasi $item): array
+    {
+        $db = $item->siswa->map(fn ($s) => [
+            'id'       => $s->id,
+            'nama'     => $s->nama,
+            'nisn'     => $s->nisn ?? null,
+            'angkatan' => $s->angkatan,
+            'manual'   => false,
+        ]);
+
+        $manual = collect($item->siswa_manual ?? [])
+            ->filter(fn ($p) => filled($p['nama'] ?? null))
+            ->map(fn ($p) => [
+                'id'       => null,
+                'nama'     => trim($p['nama']),
+                'nisn'     => null,
+                'angkatan' => filled($p['angkatan'] ?? null) ? $p['angkatan'] : null,
+                'manual'   => true,
+            ]);
+
+        return $db->concat($manual)->values()->all();
+    }
+
+    // =====================================================
+    // HELPER: format 1 prestasi untuk halaman publik
+    // =====================================================
+    private function formatPrestasi(Prestasi $item, string $dateFormat = 'd F Y'): array
+    {
+        $siswa = $this->siswaGabungan($item);
+
+        return [
+            'id'                => $item->id,
+            'nama_lomba'        => $item->nama_lomba,
+            'tingkat'           => $item->tingkat,
+            'juara'             => $item->juara,
+            'penyelenggara'     => $item->penyelenggara,
+            'tanggal'           => $item->tanggal,
+            'tanggal_formatted' => Carbon::parse($item->tanggal)->translatedFormat($dateFormat),
+            'foto'              => $item->foto ?? null,
+            'siswa'             => $siswa,
+            'nama_siswa'        => collect($siswa)->pluck('nama')->join(', '),
+        ];
+    }
+
+    // =====================================================
+    // HELPER: statistik prestasi per tingkat
+    // =====================================================
+    private function prestasiStats(): array
+    {
+        return [
+            'internasional' => Prestasi::whereRaw('LOWER(tingkat) = ?', ['internasional'])->count(),
+            'nasional'      => Prestasi::whereRaw('LOWER(tingkat) = ?', ['nasional'])->count(),
+            'provinsi'      => Prestasi::whereRaw('LOWER(tingkat) = ?', ['provinsi'])->count(),
+            'kabupaten'     => Prestasi::whereRaw('LOWER(tingkat) IN (?, ?)', ['kabupaten', 'kota'])->count(),
+        ];
+    }
+
+    // =====================================================
     // INDEX — Landing Page Utama
     // =====================================================
     public function index()
@@ -183,33 +243,14 @@ class LandingPageController extends Controller
                 ];
             });
 
+        // Prestasi (siswa DB + manual)
         $prestasi = Prestasi::with('siswa')
             ->orderBy('tanggal', 'desc')
             ->take(10)
             ->get()
-            ->map(fn($item) => [
-                'id'                => $item->id,
-                'nama_lomba'        => $item->nama_lomba,
-                'tingkat'           => $item->tingkat,
-                'juara'             => $item->juara,
-                'penyelenggara'     => $item->penyelenggara,
-                'tanggal'           => $item->tanggal,
-                'tanggal_formatted' => Carbon::parse($item->tanggal)->translatedFormat('d F Y'),
-                'siswa'             => $item->siswa->map(fn($s) => [
-                    'id'   => $s->id,
-                    'nama' => $s->nama,
-                    'nisn' => $s->nisn ?? null,
-                ]),
-                'nama_siswa' => $item->siswa->pluck('nama')->join(', '),
-            ]);
+            ->map(fn ($item) => $this->formatPrestasi($item));
 
-        $prestasiStats = [
-            'internasional' => Prestasi::whereRaw('LOWER(tingkat) = ?', ['internasional'])->count(),
-            'nasional'      => Prestasi::whereRaw('LOWER(tingkat) = ?', ['nasional'])->count(),
-            'provinsi'      => Prestasi::whereRaw('LOWER(tingkat) = ?', ['provinsi'])->count(),
-            'kabupaten'     => Prestasi::whereRaw('LOWER(tingkat) IN (?)', ['kabupaten'])->count()
-                             + Prestasi::whereRaw('LOWER(tingkat) = ?', ['kota'])->count(),
-        ];
+        $prestasiStats = $this->prestasiStats();
 
         $statistik = [
             'total_guru'                => $guru->count(),
@@ -365,30 +406,10 @@ class LandingPageController extends Controller
             $query->whereRaw('LOWER(tingkat) = ?', [strtolower($tingkatFilter)]);
         }
 
-        $prestasi = $query->get()->map(fn($item) => [
-            'id'                => $item->id,
-            'nama_lomba'        => $item->nama_lomba,
-            'tingkat'           => $item->tingkat,
-            'juara'             => $item->juara,
-            'penyelenggara'     => $item->penyelenggara,
-            'tanggal'           => $item->tanggal,
-            'tanggal_formatted' => Carbon::parse($item->tanggal)->translatedFormat('d F Y'),
-            'foto'              => $item->foto ?? null,
-            'nama_siswa'        => $item->siswa->pluck('nama')->join(', '),
-            'siswa'             => $item->siswa->map(fn($s) => [
-                'id'   => $s->id,
-                'nama' => $s->nama,
-            ]),
-        ]);
+        $prestasi = $query->get()->map(fn ($item) => $this->formatPrestasi($item));
 
-        $stats = [
-            'internasional' => Prestasi::whereRaw('LOWER(tingkat) = ?', ['internasional'])->count(),
-            'nasional'      => Prestasi::whereRaw('LOWER(tingkat) = ?', ['nasional'])->count(),
-            'provinsi'      => Prestasi::whereRaw('LOWER(tingkat) = ?', ['provinsi'])->count(),
-            'kabupaten'     => Prestasi::whereRaw('LOWER(tingkat) IN (?)', ['kabupaten'])->count()
-                             + Prestasi::whereRaw('LOWER(tingkat) = ?', ['kota'])->count(),
-            'total'         => Prestasi::count(),
-        ];
+        $stats          = $this->prestasiStats();
+        $stats['total'] = Prestasi::count();
 
         return Inertia::render('landing/Prestasi', [
             'prestasi'     => $prestasi,
@@ -479,8 +500,7 @@ class LandingPageController extends Controller
     }
 
     // =====================================================
-    // BERITA DETAIL ← PERUBAHAN ADA DI SINI
-    // Tambah 'images' ke data yang dikirim ke frontend
+    // BERITA DETAIL
     // =====================================================
     public function beritaDetail(string $slug)
     {
@@ -505,7 +525,7 @@ class LandingPageController extends Controller
                 'category'    => $item->kategori ?: 'Berita',
             ]);
 
-        // ── images: tambah prefix /storage/ ke tiap path ──────────
+        // images: tambah prefix /storage/ ke tiap path
         $images = collect($berita->images ?? [])
             ->map(fn($path) => "/storage/{$path}")
             ->values()
@@ -518,7 +538,7 @@ class LandingPageController extends Controller
                 'slug'        => $berita->slug,
                 'isi'         => $berita->isi,
                 'image'       => $berita->foto ? "/storage/{$berita->foto}" : '/storage/img/news/default-news.jpg',
-                'images'      => $images,   // ← tambahan
+                'images'      => $images,
                 'displayDate' => Carbon::parse($berita->tanggal_publikasi)->translatedFormat('d F Y'),
                 'category'    => $berita->kategori ?: 'Berita',
             ],
@@ -618,7 +638,7 @@ class LandingPageController extends Controller
                 'penulis'     => $artikel->penulis ?? 'Tim Redaksi',
                 'kategori'    => $artikel->kategori ?: 'Artikel',
                 'image'       => $artikel->foto ? "/storage/{$artikel->foto}" : '/storage/img/news/default-news.jpg',
-                'images'      => $images,   // ← foto tambahan
+                'images'      => $images,
                 'displayDate' => $artikel->tanggal_publikasi
                     ? Carbon::parse($artikel->tanggal_publikasi)->translatedFormat('d F Y')
                     : Carbon::parse($artikel->created_at)->translatedFormat('d F Y'),
@@ -786,7 +806,11 @@ class LandingPageController extends Controller
     public function getPrestasi(Request $request)
     {
         $perPage  = $request->get('per_page', 10);
-        $prestasi = Prestasi::with('siswa')->orderBy('tanggal', 'desc')->paginate($perPage);
+        $prestasi = Prestasi::with('siswa')
+            ->orderBy('tanggal', 'desc')
+            ->paginate($perPage)
+            ->through(fn ($item) => $this->formatPrestasi($item));
+
         return response()->json($prestasi);
     }
 
@@ -807,11 +831,19 @@ class LandingPageController extends Controller
             ->orderBy('tanggal_publikasi', 'desc')
             ->take(10)->get();
 
-        $prestasi = Prestasi::where(function ($q) use ($query) {
-            $q->where('nama_lomba', 'like', "%{$query}%")
-              ->orWhere('tingkat', 'like', "%{$query}%")
-              ->orWhere('penyelenggara', 'like', "%{$query}%");
-        })->orderBy('tanggal', 'desc')->take(10)->get();
+        // Prestasi: ikut cari nama siswa (DB + manual)
+        $prestasi = Prestasi::with('siswa')
+            ->where(function ($q) use ($query) {
+                $q->where('nama_lomba', 'like', "%{$query}%")
+                  ->orWhere('tingkat', 'like', "%{$query}%")
+                  ->orWhere('penyelenggara', 'like', "%{$query}%")
+                  ->orWhereHas('siswa', fn ($s) => $s->where('nama', 'like', "%{$query}%"))
+                  ->orWhere('siswa_manual', 'like', "%{$query}%");
+            })
+            ->orderBy('tanggal', 'desc')
+            ->take(10)
+            ->get()
+            ->map(fn ($item) => $this->formatPrestasi($item));
 
         return Inertia::render('SearchResults', [
             'query'   => $query,

@@ -26,6 +26,7 @@ interface Siswa {
 interface AngkatanItem  { value: number; label: number; }
 interface TingkatOption { value: string; label: string; }
 interface JuaraOption   { value: string; label: string; }
+interface SiswaManual   { nama: string; angkatan: string; }
 interface Prestasi {
     id:             number;
     nama_lomba:     string;
@@ -36,6 +37,7 @@ interface Prestasi {
     deskripsi?:     string;
     foto?:          string;
     siswa_prestasi: number[];
+    siswa_manual?:  { nama: string; angkatan: string | number | null }[] | null;
 }
 interface Props {
     prestasi:       Prestasi;
@@ -53,12 +55,20 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Edit Prestasi', href: `/admin/prestasi/${props.prestasi.id}/edit` },
 ];
 
+// ── Helper tanggal (aman timezone) ───────────────────────────────
+// Ambil hanya "YYYY-MM-DD" lalu parse sebagai tanggal LOKAL
+const cleanDate = (s: string): string => (s ?? '').substring(0, 10);
+const parseDate = (s: string): Date => {
+    const [y, m, d] = cleanDate(s).split('-').map(Number);
+    return new Date(y, m - 1, d);
+};
+
 const formState = reactive({
     nama_lomba:    props.prestasi.nama_lomba,
     tingkat:       props.prestasi.tingkat,
     juara:         props.prestasi.juara,
     penyelenggara: props.prestasi.penyelenggara || '',
-    tanggal:       props.prestasi.tanggal,
+    tanggal:       cleanDate(props.prestasi.tanggal),
     deskripsi:     props.prestasi.deskripsi || '',
     foto:          null as File | null,
     remove_foto:   '0',
@@ -70,7 +80,7 @@ const processing   = ref(false);
 const setError    = (k: string, m: string) => { localErrors.value[k] = m; };
 const clearErrors = () => { localErrors.value = {}; };
 
-// Foto
+// ── Foto ─────────────────────────────────────────────────────────
 const imagePreview = ref<string | null>(null);
 const fotoRemoved  = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -103,10 +113,9 @@ const removeFoto = () => {
     if (fileInputRef.value) fileInputRef.value.value = '';
 };
 
-// Ikuti cara KalenderAkademik/Edit.vue yang sudah terbukti benar:
-// new Date(string YYYY-MM-DD) → v-calendar handle dengan benar
+// ── Tanggal ──────────────────────────────────────────────────────
 const tanggalValue = ref<Date | null>(
-    props.prestasi.tanggal ? new Date(props.prestasi.tanggal) : null
+    props.prestasi.tanggal ? parseDate(props.prestasi.tanggal) : null
 );
 const showCalendar = ref(false);
 
@@ -115,21 +124,19 @@ const formatDisplay = (date: Date | null): string => {
     return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 };
 
-// Ikuti cara KalenderAkademik/Edit.vue yang sudah terbukti benar
-const toInputFormat = (date: Date): string => date.toISOString().split('T')[0];
-
 const onSelectTanggal = (day: any) => {
     tanggalValue.value = day.date;
-    formState.tanggal  = toInputFormat(day.date);
+    formState.tanggal  = day.id;   // langsung "YYYY-MM-DD" tanpa konversi timezone
     showCalendar.value = false;
     delete localErrors.value['tanggal'];
 };
 
 const closeCalendar = () => { showCalendar.value = false; };
 
-// Siswa
+// ── Siswa dari database (checklist) ──────────────────────────────
 const selectedSiswaIds = ref<number[]>([...props.prestasi.siswa_prestasi]);
-const selectedAngkatan = ref<number | ''>('');
+// Filter angkatan: bisa dipilih dari saran ATAU diketik manual
+const angkatanInput    = ref('');
 const searchSiswa      = ref('');
 
 onMounted(() => {
@@ -137,23 +144,26 @@ onMounted(() => {
         const selected = props.siswa.filter(s => selectedSiswaIds.value.includes(s.id));
         if (selected.length > 0) {
             const set = new Set(selected.map(s => s.angkatan));
-            if (set.size === 1) selectedAngkatan.value = selected[0].angkatan;
+            if (set.size === 1) angkatanInput.value = String(selected[0].angkatan);
         }
     }
 });
 
-const onAngkatanChange = () => { searchSiswa.value = ''; };
-const getSiswaByAngkatan = computed(() => {
-    if (!selectedAngkatan.value) return [];
-    return props.siswa.filter(s => s.angkatan === selectedAngkatan.value);
-});
+const angkatanQuery = computed(() => angkatanInput.value.trim());
+
 const filteredSiswa = computed(() => {
-    const search = searchSiswa.value.toLowerCase();
-    if (!search) return getSiswaByAngkatan.value;
-    return getSiswaByAngkatan.value.filter(s =>
-        s.nama.toLowerCase().includes(search) || s.nis.toLowerCase().includes(search)
-    );
+    const aq     = angkatanQuery.value;
+    const search = searchSiswa.value.trim().toLowerCase();
+    if (!aq && !search) return [];
+    return props.siswa.filter(s => {
+        const okAngkatan = !aq || String(s.angkatan).startsWith(aq);
+        const okSearch   = !search
+            || s.nama.toLowerCase().includes(search)
+            || (s.nis ?? '').toLowerCase().includes(search);
+        return okAngkatan && okSearch;
+    });
 });
+
 const toggleSiswa = (siswaId: number) => {
     const idx = selectedSiswaIds.value.indexOf(siswaId);
     if (idx === -1) selectedSiswaIds.value.push(siswaId);
@@ -161,20 +171,44 @@ const toggleSiswa = (siswaId: number) => {
     delete localErrors.value['siswa_prestasi'];
 };
 const isSiswaSelected  = (id: number) => selectedSiswaIds.value.includes(id);
-const selectAllVisible = () => { filteredSiswa.value.forEach(s => { if (!selectedSiswaIds.value.includes(s.id)) selectedSiswaIds.value.push(s.id); }); };
-const clearAllVisible  = () => { const v = filteredSiswa.value.map(s => s.id); selectedSiswaIds.value = selectedSiswaIds.value.filter(id => !v.includes(id)); };
+const selectAllVisible = () => {
+    filteredSiswa.value.forEach(s => { if (!selectedSiswaIds.value.includes(s.id)) selectedSiswaIds.value.push(s.id); });
+    delete localErrors.value['siswa_prestasi'];
+};
+const clearAllVisible  = () => {
+    const v = filteredSiswa.value.map(s => s.id);
+    selectedSiswaIds.value = selectedSiswaIds.value.filter(id => !v.includes(id));
+};
 const clearAllSelected = () => { selectedSiswaIds.value = []; };
-const selectedSiswaNames = computed(() => {
-    const selected = props.siswa.filter(s => selectedSiswaIds.value.includes(s.id));
-    if (selected.length === 0) return '';
-    if (selected.length <= 3) return selected.map(s => s.nama).join(', ');
-    return `${selected.slice(0, 2).map(s => s.nama).join(', ')}, +${selected.length - 2} lainnya`;
-});
 const allFilteredSelected = computed(() =>
     filteredSiswa.value.length > 0 && filteredSiswa.value.every(s => selectedSiswaIds.value.includes(s.id))
 );
 
-// Submit
+// ── Siswa input manual (tanpa foreign key) ───────────────────────
+const siswaManual = ref<SiswaManual[]>(
+    (props.prestasi.siswa_manual ?? []).map(p => ({
+        nama:     p.nama ?? '',
+        angkatan: p.angkatan !== null && p.angkatan !== undefined ? String(p.angkatan) : '',
+    }))
+);
+
+const addManual    = () => { siswaManual.value.push({ nama: '', angkatan: '' }); };
+const removeManual = (i: number) => { siswaManual.value.splice(i, 1); };
+const manualTerisi = computed(() => siswaManual.value.filter(p => p.nama.trim()));
+
+// ── Ringkasan pilihan ────────────────────────────────────────────
+const totalTerpilih = computed(() => selectedSiswaIds.value.length + manualTerisi.value.length);
+
+const ringkasanNama = computed(() => {
+    const dariDb = props.siswa.filter(s => selectedSiswaIds.value.includes(s.id)).map(s => s.nama);
+    const manual = manualTerisi.value.map(p => p.nama.trim());
+    const semua  = [...dariDb, ...manual];
+    if (semua.length === 0) return '';
+    if (semua.length <= 3) return semua.join(', ');
+    return `${semua.slice(0, 2).join(', ')}, +${semua.length - 2} lainnya`;
+});
+
+// ── Submit ───────────────────────────────────────────────────────
 const handleSubmit = () => {
     clearErrors();
     let valid = true;
@@ -182,7 +216,10 @@ const handleSubmit = () => {
     if (!formState.tingkat)           { setError('tingkat', 'Tingkat lomba wajib dipilih'); valid = false; }
     if (!formState.juara)             { setError('juara', 'Juara wajib dipilih'); valid = false; }
     if (!formState.tanggal)           { setError('tanggal', 'Tanggal lomba wajib diisi'); valid = false; }
-    if (selectedSiswaIds.value.length === 0) { setError('siswa_prestasi', 'Minimal satu siswa harus dipilih'); valid = false; }
+    if (totalTerpilih.value === 0) {
+        setError('siswa_prestasi', 'Pilih minimal satu siswa dari daftar atau isi siswa secara manual');
+        valid = false;
+    }
     if (!valid) return;
 
     const fd = new FormData();
@@ -195,7 +232,13 @@ const handleSubmit = () => {
     fd.append('deskripsi',     formState.deskripsi || '');
     fd.append('remove_foto',   formState.remove_foto);
     if (formState.foto instanceof File) fd.append('foto', formState.foto);
+
     selectedSiswaIds.value.forEach((id, i) => fd.append(`siswa_prestasi[${i}]`, id.toString()));
+
+    manualTerisi.value.forEach((p, i) => {
+        fd.append(`siswa_manual[${i}][nama]`, p.nama.trim());
+        fd.append(`siswa_manual[${i}][angkatan]`, String(p.angkatan ?? '').trim());
+    });
 
     processing.value = true;
     router.post(`/admin/prestasi/${props.prestasi.id}`, fd, {
@@ -303,7 +346,7 @@ const handleSubmit = () => {
                                         class="block w-full rounded-xl border-0 bg-gray-50 py-3 px-4 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:placeholder:text-gray-500 dark:focus:bg-gray-700" />
                                 </div>
 
-                                <!-- Tanggal — FIX: hapus :max-date -->
+                                <!-- Tanggal -->
                                 <div class="space-y-1.5">
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                         Tanggal Lomba <span class="text-red-500">*</span>
@@ -318,7 +361,6 @@ const handleSubmit = () => {
                                             </span>
                                             <span v-html="ChevronDownIcon()" class="text-gray-400 flex-shrink-0 transition-transform" :class="showCalendar ? 'rotate-180' : ''"></span>
                                         </button>
-                                        <!-- FIX: tidak ada :max-date sehingga bisa pilih masa depan -->
                                         <div v-if="showCalendar" class="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
                                             <DatePicker
                                                 v-model="tanggalValue"
@@ -379,25 +421,25 @@ const handleSubmit = () => {
                                 </p>
                             </div>
 
-                            <!-- Siswa -->
+                            <!-- Siswa Berprestasi -->
                             <div class="space-y-3">
                                 <div>
                                     <h4 class="text-sm font-semibold text-gray-700 dark:text-white">Siswa Berprestasi <span class="text-red-500">*</span></h4>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Filter berdasarkan angkatan, lalu centang siswa yang meraih prestasi ini</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Pilih angkatan (atau ketik manual), lalu centang siswa. Jika siswa tidak ada di daftar, isi manual di bagian bawah.</p>
                                 </div>
+
                                 <div class="rounded-xl border border-indigo-200 bg-white overflow-hidden dark:border-indigo-800 dark:bg-gray-800/50">
                                     <div class="border-b border-indigo-100 bg-indigo-50/50 px-4 py-4 dark:border-indigo-900 dark:bg-indigo-900/5 space-y-3">
                                         <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+                                            <!-- Filter angkatan: pilih dari saran atau ketik manual -->
                                             <div class="space-y-1.5 sm:w-56">
                                                 <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Filter Angkatan</label>
-                                                <div class="relative">
-                                                    <select v-model="selectedAngkatan" @change="onAngkatanChange"
-                                                        class="block w-full appearance-none rounded-lg border-0 bg-white py-2.5 pl-3 pr-8 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 focus:ring-2 focus:ring-indigo-600 dark:bg-gray-700 dark:text-white dark:ring-gray-600">
-                                                        <option value="">Semua Angkatan</option>
-                                                        <option v-for="a in angkatanList" :key="a.value" :value="a.value">Angkatan {{ a.label }}</option>
-                                                    </select>
-                                                    <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none"><span v-html="ChevronDownIcon()" class="text-gray-400"></span></div>
-                                                </div>
+                                                <input v-model="angkatanInput" list="angkatan-saran" type="text" inputmode="numeric"
+                                                    placeholder="Pilih atau ketik, mis. 2022"
+                                                    class="block w-full rounded-lg border-0 bg-white py-2.5 px-3 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 dark:bg-gray-700 dark:text-white dark:ring-gray-600 dark:placeholder:text-gray-500" />
+                                                <datalist id="angkatan-saran">
+                                                    <option v-for="a in angkatanList" :key="a.value" :value="String(a.value)">Angkatan {{ a.label }}</option>
+                                                </datalist>
                                             </div>
                                             <div class="flex-1 space-y-1.5">
                                                 <label class="block text-xs font-medium text-gray-700 dark:text-gray-300">Cari Siswa</label>
@@ -410,7 +452,7 @@ const handleSubmit = () => {
                                         </div>
                                         <div class="flex items-center justify-between">
                                             <p class="text-xs text-gray-500 dark:text-gray-400">
-                                                <span v-if="selectedAngkatan">{{ getSiswaByAngkatan.length }} siswa<span v-if="searchSiswa"> · {{ filteredSiswa.length }} hasil</span></span>
+                                                <span v-if="angkatanQuery || searchSiswa">{{ filteredSiswa.length }} siswa ditemukan</span>
                                                 <span v-else>{{ props.siswa.length }} total siswa</span>
                                                 <span v-if="selectedSiswaIds.length > 0"> · <span class="font-medium text-indigo-600 dark:text-indigo-400">{{ selectedSiswaIds.length }} dipilih</span></span>
                                             </p>
@@ -421,8 +463,9 @@ const handleSubmit = () => {
                                             </div>
                                         </div>
                                     </div>
+
                                     <div class="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
-                                        <div v-if="!selectedAngkatan && !searchSiswa" class="flex flex-col items-center justify-center py-10 gap-3">
+                                        <div v-if="!angkatanQuery && !searchSiswa" class="flex flex-col items-center justify-center py-10 gap-3">
                                             <div class="h-12 w-12 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                                                 <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                             </div>
@@ -430,6 +473,7 @@ const handleSubmit = () => {
                                         </div>
                                         <div v-else-if="filteredSiswa.length === 0" class="flex flex-col items-center justify-center py-10 gap-2">
                                             <p class="text-sm text-gray-500 dark:text-gray-400">Tidak ada siswa yang sesuai</p>
+                                            <p class="text-xs text-gray-400 dark:text-gray-500">Siswa belum terdaftar? Isi manual di bagian bawah.</p>
                                             <button v-if="searchSiswa" @click="searchSiswa = ''" type="button" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Hapus pencarian</button>
                                         </div>
                                         <label v-for="s in filteredSiswa" :key="s.id"
@@ -451,10 +495,45 @@ const handleSubmit = () => {
                                         </label>
                                     </div>
                                 </div>
-                                <div v-if="selectedSiswaIds.length > 0" class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 dark:bg-green-900/10 dark:border-green-800">
-                                    <p class="text-sm font-medium text-green-800 dark:text-green-300">{{ selectedSiswaIds.length }} siswa terpilih</p>
-                                    <p class="text-xs text-green-600 dark:text-green-400 mt-0.5">{{ selectedSiswaNames }}</p>
+
+                                <!-- Input siswa manual -->
+                                <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50/60 p-4 space-y-3 dark:border-gray-700 dark:bg-gray-800/40">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700 dark:text-gray-200">Siswa tidak ada di daftar? Input manual</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ketik nama siswa atau nama regu, dan angkatannya. Tidak perlu terdaftar di data siswa.</p>
+                                    </div>
+
+                                    <div v-for="(p, i) in siswaManual" :key="i" class="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-center">
+                                        <div class="sm:col-span-7">
+                                            <input v-model="p.nama" @input="delete localErrors['siswa_prestasi']" type="text"
+                                                placeholder="Nama siswa atau nama regu"
+                                                class="block w-full rounded-xl border-0 bg-white py-3 px-4 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:placeholder:text-gray-500" />
+                                        </div>
+                                        <div class="sm:col-span-4">
+                                            <input v-model="p.angkatan" list="angkatan-saran" type="text" inputmode="numeric"
+                                                placeholder="Angkatan (opsional)"
+                                                class="block w-full rounded-xl border-0 bg-white py-3 px-4 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:placeholder:text-gray-500" />
+                                        </div>
+                                        <div class="sm:col-span-1 flex sm:justify-center">
+                                            <button type="button" @click="removeManual(i)" title="Hapus baris"
+                                                class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <button type="button" @click="addManual"
+                                        class="inline-flex items-center gap-2 rounded-lg bg-indigo-100 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:hover:bg-indigo-900/50">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                        Tambah siswa manual
+                                    </button>
                                 </div>
+
+                                <div v-if="totalTerpilih > 0" class="rounded-xl bg-green-50 border border-green-200 px-4 py-3 dark:bg-green-900/10 dark:border-green-800">
+                                    <p class="text-sm font-medium text-green-800 dark:text-green-300">{{ totalTerpilih }} siswa terpilih</p>
+                                    <p class="text-xs text-green-600 dark:text-green-400 mt-0.5">{{ ringkasanNama }}</p>
+                                </div>
+
                                 <p v-if="localErrors.siswa_prestasi || serverErrors.siswa_prestasi" class="text-xs text-red-500 dark:text-red-400 flex items-center gap-1">
                                     <span v-html="ErrIcon()"></span>{{ localErrors.siswa_prestasi || serverErrors.siswa_prestasi }}
                                 </p>

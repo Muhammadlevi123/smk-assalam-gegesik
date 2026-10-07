@@ -13,6 +13,7 @@ const EditIcon = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" v
 const TrashIcon = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>`;
 const ChevronDownIcon = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>`;
 const UserGroupIcon = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>`;
+const PencilUserIcon = () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>`;
 const ExclamationIcon = () => `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>`;
 const CalendarIcon = () => `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5a2.25 2.25 0 0 1 2.25 2.25v7.5" /></svg>`;
 const XMarkIcon = () => `<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>`;
@@ -21,11 +22,12 @@ const ImageIcon = () => `<svg class="w-5 h-5" fill="none" stroke="currentColor" 
 
 // ── Types ─────────────────────────────────────────────────────────
 interface SiswaPrestasi {
-    siswa_id: number;
+    siswa_id: number | null;          // null jika siswa input manual
     siswa_nama: string;
-    siswa_nis: string;
-    angkatan: number;
-    foto?: string;
+    siswa_nis: string | null;         // null jika siswa input manual
+    angkatan: number | string | null; // manual: string / null
+    foto?: string | null;
+    manual: boolean;
 }
 
 interface Prestasi {
@@ -41,7 +43,7 @@ interface Prestasi {
     deskripsi?: string;
     jumlah_siswa: number;
     siswa_prestasi: SiswaPrestasi[];
-    angkatan_terkait: number[];
+    angkatan_terkait: (number | string)[];
 }
 
 interface Props {
@@ -86,7 +88,7 @@ const showErrorDeletePopup = ref(false);
 const selectedPrestasi = ref<Prestasi | null>(null);
 const selectedSiswaPrestasi = ref<Prestasi | null>(null);
 const deleteErrorMessage = ref('');
-let countdown: number | null = null;
+let countdown: ReturnType<typeof setTimeout> | null = null;
 
 // ── Search & Filter ───────────────────────────────────────────────
 const searchForm = useForm({
@@ -129,6 +131,30 @@ const clearAllFilters = () => {
 const openSiswaModal = (prestasi: Prestasi) => { selectedSiswaPrestasi.value = prestasi; showSiswaModal.value = true; };
 const closeSiswaModal = () => { showSiswaModal.value = false; selectedSiswaPrestasi.value = null; };
 
+// Pisahkan siswa terdaftar (DB) dan siswa input manual
+const siswaTerdaftar = computed(() =>
+    (selectedSiswaPrestasi.value?.siswa_prestasi ?? []).filter(s => !s.manual)
+);
+const siswaManualList = computed(() =>
+    (selectedSiswaPrestasi.value?.siswa_prestasi ?? []).filter(s => s.manual)
+);
+
+// Preview nama untuk tabel / kartu mobile
+const namaPreview = (item: Prestasi): string => {
+    const names = (item.siswa_prestasi ?? []).map(s => s.siswa_nama).filter(Boolean);
+    if (names.length === 0) return '';
+    if (names.length <= 2) return names.join(', ');
+    return `${names.slice(0, 2).join(', ')} +${names.length - 2} lainnya`;
+};
+
+const jumlahManual = (item: Prestasi): number =>
+    (item.siswa_prestasi ?? []).filter(s => s.manual).length;
+
+const hasAngkatan = (a: number | string | null | undefined) =>
+    a !== null && a !== undefined && String(a).trim() !== '';
+
+const getInitial = (nama: string) => (nama?.trim().charAt(0) || '?').toUpperCase();
+
 // ── Delete ────────────────────────────────────────────────────────
 const deletePrestasi = (prestasi: Prestasi) => { selectedPrestasi.value = prestasi; showDeleteModal.value = true; };
 
@@ -156,7 +182,7 @@ const confirmDelete = () => {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────
-const getFotoUrl = (foto?: string) => foto ? `/storage/${foto}` : null;
+const getFotoUrl = (foto?: string | null) => foto ? `/storage/${foto}` : null;
 
 const getTingkatColor = (tingkat: string) => {
     switch (tingkat.toLowerCase()) {
@@ -225,12 +251,9 @@ onUnmounted(() => { clearCountdown(); });
                 <!-- Header -->
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between lg:items-center">
                     <div class="space-y-2">
-                        <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">Data
-                            Prestasi</h1>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 sm:text-base">Kelola data prestasi dan
-                            pencapaian siswa sekolah</p>
-                        <div
-                            class="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 sm:gap-6 sm:text-sm">
+                        <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">Data Prestasi</h1>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 sm:text-base">Kelola data prestasi dan pencapaian siswa sekolah</p>
+                        <div class="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 sm:gap-6 sm:text-sm">
                             <div class="flex items-center gap-2">
                                 <div class="h-2 w-2 rounded-full bg-yellow-500"></div>
                                 <span>{{ prestasi.total }} Total Prestasi</span>
@@ -257,10 +280,8 @@ onUnmounted(() => { clearCountdown(); });
                 </div>
 
                 <!-- Filter Card -->
-                <div
-                    class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-2xl">
-                    <div
-                        class="border-b border-gray-100 bg-gray-50/50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50 sm:px-6 sm:py-4">
+                <div class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-2xl">
+                    <div class="border-b border-gray-100 bg-gray-50/50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50 sm:px-6 sm:py-4">
                         <div class="flex items-center gap-2">
                             <span v-html="FilterIcon()" class="text-gray-500 dark:text-gray-400"></span>
                             <h3 class="text-sm font-medium text-gray-900 dark:text-white">Pencarian & Filter</h3>
@@ -274,11 +295,9 @@ onUnmounted(() => { clearCountdown(); });
 
                             <!-- Search -->
                             <div class="sm:col-span-2 lg:col-span-3 xl:col-span-4">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cari
-                                    Prestasi</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cari Prestasi</label>
                                 <div class="relative">
-                                    <div
-                                        class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none sm:pl-4">
+                                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none sm:pl-4">
                                         <span v-html="SearchIcon()" class="text-gray-400"></span>
                                     </div>
                                     <input v-model="searchForm.search" type="text"
@@ -289,17 +308,14 @@ onUnmounted(() => { clearCountdown(); });
 
                             <!-- Tingkat -->
                             <div class="xl:col-span-2">
-                                <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tingkat</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tingkat</label>
                                 <div class="relative">
                                     <select v-model="searchForm.tingkat"
                                         class="block w-full appearance-none rounded-lg border-0 bg-gray-50 py-2.5 pl-3 pr-8 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:focus:bg-gray-700 dark:focus:ring-blue-500 sm:py-3 sm:pl-4 sm:pr-10 sm:rounded-xl">
                                         <option value="">Semua Tingkat</option>
-                                        <option v-for="t in tingkatList" :key="t.value" :value="t.value">{{ t.label }}
-                                        </option>
+                                        <option v-for="t in tingkatList" :key="t.value" :value="t.value">{{ t.label }}</option>
                                     </select>
-                                    <div
-                                        class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none sm:pr-4">
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none sm:pr-4">
                                         <span v-html="ChevronDownIcon()" class="text-gray-400"></span>
                                     </div>
                                 </div>
@@ -307,17 +323,14 @@ onUnmounted(() => { clearCountdown(); });
 
                             <!-- Juara -->
                             <div class="xl:col-span-2">
-                                <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Juara</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Juara</label>
                                 <div class="relative">
                                     <select v-model="searchForm.juara"
                                         class="block w-full appearance-none rounded-lg border-0 bg-gray-50 py-2.5 pl-3 pr-8 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:focus:bg-gray-700 dark:focus:ring-blue-500 sm:py-3 sm:pl-4 sm:pr-10 sm:rounded-xl">
                                         <option value="">Semua Juara</option>
-                                        <option v-for="j in juaraList" :key="j.value" :value="j.value">{{ j.label }}
-                                        </option>
+                                        <option v-for="j in juaraList" :key="j.value" :value="j.value">{{ j.label }}</option>
                                     </select>
-                                    <div
-                                        class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none sm:pr-4">
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none sm:pr-4">
                                         <span v-html="ChevronDownIcon()" class="text-gray-400"></span>
                                     </div>
                                 </div>
@@ -325,17 +338,14 @@ onUnmounted(() => { clearCountdown(); });
 
                             <!-- Tahun -->
                             <div class="xl:col-span-2">
-                                <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tahun</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tahun</label>
                                 <div class="relative">
                                     <select v-model="searchForm.tahun"
                                         class="block w-full appearance-none rounded-lg border-0 bg-gray-50 py-2.5 pl-3 pr-8 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:focus:bg-gray-700 dark:focus:ring-blue-500 sm:py-3 sm:pl-4 sm:pr-10 sm:rounded-xl">
                                         <option value="">Semua Tahun</option>
-                                        <option v-for="t in tahunList" :key="t.value" :value="t.value.toString()">{{
-                                            t.label }}</option>
+                                        <option v-for="t in tahunList" :key="t.value" :value="t.value.toString()">{{ t.label }}</option>
                                     </select>
-                                    <div
-                                        class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none sm:pr-4">
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none sm:pr-4">
                                         <span v-html="ChevronDownIcon()" class="text-gray-400"></span>
                                     </div>
                                 </div>
@@ -343,17 +353,14 @@ onUnmounted(() => { clearCountdown(); });
 
                             <!-- Angkatan -->
                             <div class="xl:col-span-2">
-                                <label
-                                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Angkatan</label>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Angkatan</label>
                                 <div class="relative">
                                     <select v-model="searchForm.angkatan"
                                         class="block w-full appearance-none rounded-lg border-0 bg-gray-50 py-2.5 pl-3 pr-8 text-sm text-gray-900 ring-1 ring-inset ring-gray-200 focus:bg-white focus:ring-2 focus:ring-blue-600 dark:bg-gray-800 dark:text-white dark:ring-gray-700 dark:focus:bg-gray-700 dark:focus:ring-blue-500 sm:py-3 sm:pl-4 sm:pr-10 sm:rounded-xl">
                                         <option value="">Semua Angkatan</option>
-                                        <option v-for="a in angkatanList" :key="a.value" :value="a.value.toString()">{{
-                                            a.label }}</option>
+                                        <option v-for="a in angkatanList" :key="a.value" :value="a.value.toString()">{{ a.label }}</option>
                                     </select>
-                                    <div
-                                        class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none sm:pr-4">
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none sm:pr-4">
                                         <span v-html="ChevronDownIcon()" class="text-gray-400"></span>
                                     </div>
                                 </div>
@@ -371,10 +378,8 @@ onUnmounted(() => { clearCountdown(); });
                 </div>
 
                 <!-- Table Card -->
-                <div
-                    class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-2xl overflow-hidden">
-                    <div
-                        class="border-b border-gray-100 bg-gray-50/50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50 sm:px-6 sm:py-4">
+                <div class="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:rounded-2xl overflow-hidden">
+                    <div class="border-b border-gray-100 bg-gray-50/50 px-4 py-3 dark:border-gray-800 dark:bg-gray-800/50 sm:px-6 sm:py-4">
                         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
                             <p class="text-sm font-medium text-gray-900 dark:text-white">
                                 Menampilkan {{ prestasi.data.length }} dari {{ prestasi.total }} prestasi
@@ -390,24 +395,12 @@ onUnmounted(() => { clearCountdown(); });
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50/80 dark:bg-gray-800/50">
                                 <tr>
-                                    <th
-                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Foto</th>
-                                    <th
-                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Nama Lomba</th>
-                                    <th
-                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Tingkat</th>
-                                    <th
-                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Juara</th>
-                                    <th
-                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Siswa</th>
-                                    <th
-                                        class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">
-                                        Tanggal</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Foto</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Nama Lomba</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Tingkat</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Juara</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Siswa</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Tanggal</th>
                                     <th class="relative px-6 py-4"><span class="sr-only">Aksi</span></th>
                                 </tr>
                             </thead>
@@ -418,47 +411,38 @@ onUnmounted(() => { clearCountdown(); });
                                     <!-- Foto thumbnail -->
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="h-14 w-14 flex-shrink-0">
-                                            <img v-if="getFotoUrl(item.foto)" :src="getFotoUrl(item.foto)!"
-                                                :alt="item.nama_lomba"
+                                            <img v-if="getFotoUrl(item.foto)" :src="getFotoUrl(item.foto)!" :alt="item.nama_lomba"
                                                 class="h-14 w-14 rounded-lg object-cover border border-gray-200 dark:border-gray-700 ring-1 ring-black/5 dark:ring-white/10" />
                                             <div v-else
                                                 class="h-14 w-14 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                                                <span v-html="ImageIcon()"
-                                                    class="text-gray-300 dark:text-gray-600"></span>
+                                                <span v-html="ImageIcon()" class="text-gray-300 dark:text-gray-600"></span>
                                             </div>
                                         </div>
                                     </td>
 
                                     <!-- Nama Lomba -->
                                     <td class="px-6 py-4">
-                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">{{
-                                            item.nama_lomba }}</div>
-                                        <div v-if="item.penyelenggara"
-                                            class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{
-                                            item.penyelenggara }}</div>
-                                        <div v-if="item.deskripsi"
-                                            class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 max-w-xs truncate">{{
-                                            item.deskripsi }}</div>
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ item.nama_lomba }}</div>
+                                        <div v-if="item.penyelenggara" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.penyelenggara }}</div>
+                                        <div v-if="item.deskripsi" class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 max-w-xs truncate">{{ item.deskripsi }}</div>
                                     </td>
 
                                     <!-- Tingkat -->
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span :class="getTingkatColor(item.tingkat)"
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                                        <span :class="getTingkatColor(item.tingkat)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
                                             {{ capitalize(item.tingkat) }}
                                         </span>
                                     </td>
 
                                     <!-- Juara -->
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span :class="getJuaraColor(item.juara)"
-                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
+                                        <span :class="getJuaraColor(item.juara)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
                                             {{ item.juara }}
                                         </span>
                                     </td>
 
-                                    <!-- Siswa -->
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <!-- Siswa (DB + manual) -->
+                                    <td class="px-6 py-4">
                                         <button @click="openSiswaModal(item)"
                                             class="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 shadow-sm transition-all hover:bg-indigo-100 hover:shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 dark:border-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-400 dark:hover:bg-indigo-900/40 dark:focus:ring-offset-gray-900">
                                             <span v-html="UserGroupIcon()"></span>
@@ -470,32 +454,27 @@ onUnmounted(() => { clearCountdown(); });
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center gap-2">
                                             <span v-html="CalendarIcon()" class="text-gray-400"></span>
-                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{
-                                                item.tanggal_formatted }}</div>
+                                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ item.tanggal_formatted }}</div>
                                         </div>
                                     </td>
 
                                     <!-- Aksi -->
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <!-- Aksi — SEBELUM tombol Edit -->
                                             <Link :href="route('admin.prestasi.show', item.id)"
                                                 class="group/btn inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-900"
                                                 title="Lihat Detail">
-                                                <span v-html="EyeIcon()"
-                                                    class="transition-transform group-hover/btn:scale-110"></span>
+                                                <span v-html="EyeIcon()" class="transition-transform group-hover/btn:scale-110"></span>
                                             </Link>
                                             <Link :href="route('admin.prestasi.edit', item.id)"
                                                 class="group/btn inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 shadow-sm transition-all hover:bg-blue-100 hover:shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 dark:focus:ring-offset-gray-900"
                                                 title="Edit">
-                                                <span v-html="EditIcon()"
-                                                    class="transition-transform group-hover/btn:scale-110"></span>
+                                                <span v-html="EditIcon()" class="transition-transform group-hover/btn:scale-110"></span>
                                             </Link>
                                             <button @click="deletePrestasi(item)"
                                                 class="group/btn inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 shadow-sm transition-all hover:bg-red-100 hover:shadow focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 dark:focus:ring-offset-gray-900"
                                                 title="Hapus">
-                                                <span v-html="TrashIcon()"
-                                                    class="transition-transform group-hover/btn:scale-110"></span>
+                                                <span v-html="TrashIcon()" class="transition-transform group-hover/btn:scale-110"></span>
                                             </button>
                                         </div>
                                     </td>
@@ -505,14 +484,11 @@ onUnmounted(() => { clearCountdown(); });
                     </div>
 
                     <!-- Mobile Card View -->
-                    <div v-if="prestasi.data.length > 0"
-                        class="lg:hidden divide-y divide-gray-100 dark:divide-gray-800">
+                    <div v-if="prestasi.data.length > 0" class="lg:hidden divide-y divide-gray-100 dark:divide-gray-800">
                         <div v-for="item in prestasi.data" :key="item.id" class="p-4">
                             <div class="flex items-start gap-3">
-                                <!-- Foto mobile -->
                                 <div class="flex-shrink-0">
-                                    <img v-if="getFotoUrl(item.foto)" :src="getFotoUrl(item.foto)!"
-                                        :alt="item.nama_lomba"
+                                    <img v-if="getFotoUrl(item.foto)" :src="getFotoUrl(item.foto)!" :alt="item.nama_lomba"
                                         class="h-16 w-16 rounded-xl object-cover border border-gray-200 dark:border-gray-700 ring-1 ring-black/5 dark:ring-white/10" />
                                     <div v-else
                                         class="h-16 w-16 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center">
@@ -521,37 +497,29 @@ onUnmounted(() => { clearCountdown(); });
                                 </div>
 
                                 <div class="min-w-0 flex-1">
-                                    <h3 class="text-base font-semibold text-gray-900 dark:text-white leading-tight">{{
-                                        item.nama_lomba }}</h3>
-                                    <p v-if="item.penyelenggara"
-                                        class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.penyelenggara }}
-                                    </p>
+                                    <h3 class="text-base font-semibold text-gray-900 dark:text-white leading-tight">{{ item.nama_lomba }}</h3>
+                                    <p v-if="item.penyelenggara" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.penyelenggara }}</p>
                                     <div class="mt-2 flex flex-wrap gap-2">
-                                        <span :class="getTingkatColor(item.tingkat)"
-                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
+                                        <span :class="getTingkatColor(item.tingkat)" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
                                             {{ capitalize(item.tingkat) }}
                                         </span>
-                                        <span :class="getJuaraColor(item.juara)"
-                                            class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
+                                        <span :class="getJuaraColor(item.juara)" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
                                             {{ item.juara }}
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Deskripsi mobile (jika ada) -->
-                            <div v-if="item.deskripsi"
-                                class="mt-2 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                            <div v-if="item.deskripsi" class="mt-2 text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
                                 {{ item.deskripsi }}
                             </div>
 
                             <div class="mt-3 grid grid-cols-2 gap-2">
                                 <div class="rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Tanggal</p>
-                                    <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{
-                                        item.tanggal_formatted }}</p>
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{{ item.tanggal_formatted }}</p>
                                 </div>
-                                <div class="rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
+                                <div class="rounded-lg bg-gray-50 dark:bg-gray-800/50 px-3 py-2 min-w-0">
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Siswa</p>
                                     <button @click="openSiswaModal(item)"
                                         class="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
@@ -561,8 +529,15 @@ onUnmounted(() => { clearCountdown(); });
                                 </div>
                             </div>
 
+                            <p v-if="namaPreview(item)" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                {{ namaPreview(item) }}
+                                <span v-if="jumlahManual(item) > 0"
+                                    class="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                    {{ jumlahManual(item) }} manual
+                                </span>
+                            </p>
+
                             <div class="mt-3 flex gap-2">
-                                <!-- Tambah di awal, sebelum tombol Edit -->
                                 <Link :href="route('admin.prestasi.show', item.id)"
                                     class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white py-2 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors">
                                     <span v-html="EyeIcon()"></span>Lihat
@@ -582,15 +557,12 @@ onUnmounted(() => { clearCountdown(); });
                     <!-- Empty State -->
                     <div v-else class="p-8 text-center sm:p-16">
                         <div class="mx-auto max-w-sm">
-                            <div
-                                class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 sm:h-20 sm:w-20">
+                            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 sm:h-20 sm:w-20">
                                 <span class="text-2xl sm:text-3xl">🏆</span>
                             </div>
-                            <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white sm:mt-6">Belum ada data
-                                prestasi</h3>
+                            <h3 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white sm:mt-6">Belum ada data prestasi</h3>
                             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                {{ hasActiveFilters ? 'Coba sesuaikan kriteria pencarian atau bersihkan filter.' :
-                                'Mulai dengan menambahkan prestasi pertama.' }}
+                                {{ hasActiveFilters ? 'Coba sesuaikan kriteria pencarian atau bersihkan filter.' : 'Mulai dengan menambahkan prestasi pertama.' }}
                             </p>
                             <div class="mt-6 sm:mt-8">
                                 <Link :href="route('admin.prestasi.create')"
@@ -608,17 +580,14 @@ onUnmounted(() => { clearCountdown(); });
                     class="flex flex-col gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 sm:flex-row sm:items-center sm:justify-between sm:p-6 sm:rounded-2xl">
                     <div class="text-sm text-gray-600 dark:text-gray-400">
                         Menampilkan
-                        <span class="font-medium text-gray-900 dark:text-white">{{ ((prestasi.current_page - 1) *
-                            prestasi.per_page) + 1 }}</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ ((prestasi.current_page - 1) * prestasi.per_page) + 1 }}</span>
                         sampai
-                        <span class="font-medium text-gray-900 dark:text-white">{{ Math.min(prestasi.current_page *
-                            prestasi.per_page, prestasi.total) }}</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ Math.min(prestasi.current_page * prestasi.per_page, prestasi.total) }}</span>
                         dari
                         <span class="font-medium text-gray-900 dark:text-white">{{ prestasi.total }}</span>
                         hasil
                     </div>
-                    <nav class="flex flex-wrap items-center justify-center gap-1 sm:justify-start"
-                        aria-label="Navigasi halaman">
+                    <nav class="flex flex-wrap items-center justify-center gap-1 sm:justify-start" aria-label="Navigasi halaman">
                         <template v-for="link in prestasi.links" :key="link.label">
                             <Link v-if="link.url !== null" :href="link.url as string" v-html="link.label"
                                 :class="['inline-flex items-center justify-center px-3 py-2 text-sm font-medium rounded-lg transition-all min-w-[2.5rem]',
@@ -638,8 +607,7 @@ onUnmounted(() => { clearCountdown(); });
         <Transition enter-active-class="transition-all duration-200 ease-out" enter-from-class="opacity-0"
             enter-to-class="opacity-100" leave-active-class="transition-all duration-150 ease-in"
             leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="showSiswaModal" class="fixed inset-0 z-50 flex items-center justify-center p-4"
-                @click.self="closeSiswaModal">
+            <div v-if="showSiswaModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="closeSiswaModal">
                 <div class="fixed inset-0 bg-black/40 backdrop-blur-sm" @click="closeSiswaModal"></div>
                 <Transition enter-active-class="transition-all duration-200 ease-out"
                     enter-from-class="opacity-0 scale-95 translate-y-4"
@@ -649,18 +617,16 @@ onUnmounted(() => { clearCountdown(); });
                     leave-to-class="opacity-0 scale-95 translate-y-4">
                     <div v-if="showSiswaModal"
                         class="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10">
-                        <div
-                            class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+
+                        <!-- Header modal -->
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
                             <div class="flex items-center gap-3">
-                                <div
-                                    class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+                                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/30">
                                     <span v-html="UserGroupIcon()" class="text-indigo-600 dark:text-indigo-400"></span>
                                 </div>
                                 <div>
-                                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">Siswa Berprestasi
-                                    </h3>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{
-                                        selectedSiswaPrestasi?.nama_lomba }}</p>
+                                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">Siswa Berprestasi</h3>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ selectedSiswaPrestasi?.nama_lomba }}</p>
                                 </div>
                             </div>
                             <button @click="closeSiswaModal" type="button"
@@ -668,10 +634,11 @@ onUnmounted(() => { clearCountdown(); });
                                 <span v-html="XMarkIcon()"></span>
                             </button>
                         </div>
-                        <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+                        <!-- Body modal -->
+                        <div class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
                             <div class="flex flex-wrap gap-2">
-                                <span v-if="selectedSiswaPrestasi"
-                                    :class="getTingkatColor(selectedSiswaPrestasi.tingkat)"
+                                <span v-if="selectedSiswaPrestasi" :class="getTingkatColor(selectedSiswaPrestasi.tingkat)"
                                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
                                     {{ capitalize(selectedSiswaPrestasi.tingkat) }}
                                 </span>
@@ -679,49 +646,75 @@ onUnmounted(() => { clearCountdown(); });
                                     class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
                                     {{ selectedSiswaPrestasi.juara }}
                                 </span>
+                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                    Total {{ selectedSiswaPrestasi?.jumlah_siswa ?? 0 }} siswa
+                                </span>
                             </div>
+
                             <div class="border-t border-gray-100 dark:border-gray-800"></div>
-                            <div>
-                                <h4
-                                    class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
-                                    <span v-html="UserGroupIcon()" class="text-indigo-500 w-4 h-4"></span>
-                                    Daftar Siswa
-                                    <span
-                                        class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                        {{ selectedSiswaPrestasi?.jumlah_siswa ?? 0 }}
+
+                            <!-- Siswa terdaftar (database) -->
+                            <div v-if="siswaTerdaftar.length > 0">
+                                <h4 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                                    <span v-html="UserGroupIcon()" class="text-indigo-500"></span>
+                                    Siswa Terdaftar
+                                    <span class="inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                        {{ siswaTerdaftar.length }}
                                     </span>
                                 </h4>
-                                <div v-if="selectedSiswaPrestasi && selectedSiswaPrestasi.siswa_prestasi.length > 0"
-                                    class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <div v-for="(siswa, idx) in selectedSiswaPrestasi.siswa_prestasi"
-                                        :key="siswa.siswa_id"
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div v-for="(siswa, idx) in siswaTerdaftar" :key="`db-${siswa.siswa_id ?? idx}`"
                                         class="flex items-center gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
                                         <img v-if="siswa.foto" :src="`/storage/${siswa.foto}`" :alt="siswa.siswa_nama"
                                             class="h-10 w-10 rounded-xl border border-gray-200 bg-gray-100 object-cover flex-shrink-0 dark:border-gray-600" />
                                         <div v-else
                                             class="h-10 w-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0 border border-indigo-200 dark:border-indigo-800">
-                                            <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300">{{ idx
-                                                + 1
-                                                }}</span>
+                                            <span class="text-sm font-bold text-indigo-700 dark:text-indigo-300">{{ getInitial(siswa.siswa_nama) }}</span>
                                         </div>
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{
-                                                siswa.siswa_nama }}</p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">NIS: {{
-                                                siswa.siswa_nis
-                                                }}</p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Angkatan: {{
-                                                siswa.angkatan }}</p>
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ siswa.siswa_nama }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">NIS: {{ siswa.siswa_nis || '-' }}</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Angkatan: {{ siswa.angkatan ?? '-' }}</p>
                                         </div>
                                     </div>
                                 </div>
-                                <div v-else
-                                    class="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 py-6 text-center">
-                                    <p class="text-sm text-gray-400 dark:text-gray-600 italic">Belum ada siswa terdaftar
-                                    </p>
+                            </div>
+
+                            <!-- Siswa input manual -->
+                            <div v-if="siswaManualList.length > 0">
+                                <h4 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-1">
+                                    <span v-html="PencilUserIcon()" class="text-amber-500"></span>
+                                    Input Manual
+                                    <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                                        {{ siswaManualList.length }}
+                                    </span>
+                                </h4>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Siswa/regu yang diketik langsung, tidak terhubung ke data siswa.</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div v-for="(siswa, idx) in siswaManualList" :key="`manual-${idx}`"
+                                        class="flex items-center gap-3 rounded-lg border border-amber-100 bg-amber-50/60 p-3 dark:border-amber-900/40 dark:bg-amber-900/10">
+                                        <div class="h-10 w-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 border border-amber-200 dark:border-amber-800">
+                                            <span class="text-sm font-bold text-amber-700 dark:text-amber-300">{{ getInitial(siswa.siswa_nama) }}</span>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2">
+                                                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ siswa.siswa_nama }}</p>
+                                                <span class="inline-flex flex-shrink-0 items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Manual</span>
+                                            </div>
+                                            <p v-if="hasAngkatan(siswa.angkatan)" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Angkatan: {{ siswa.angkatan }}</p>
+                                            <p v-else class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 italic">Angkatan tidak diisi</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
+                            <!-- Kosong -->
+                            <div v-if="siswaTerdaftar.length === 0 && siswaManualList.length === 0"
+                                class="rounded-lg border border-dashed border-gray-200 dark:border-gray-700 py-6 text-center">
+                                <p class="text-sm text-gray-400 dark:text-gray-600 italic">Belum ada siswa terdaftar</p>
+                            </div>
                         </div>
+
                         <div class="flex-shrink-0 border-t border-gray-100 dark:border-gray-800 px-6 py-4">
                             <button @click="closeSiswaModal" type="button"
                                 class="w-full rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-700 transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
@@ -734,11 +727,9 @@ onUnmounted(() => { clearCountdown(); });
         </Transition>
 
         <!-- ══ Delete Modal ══════════════════════════════════════════ -->
-        <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto"
-            @click.self="showDeleteModal = false">
+        <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto" @click.self="showDeleteModal = false">
             <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"></div>
-            <div
-                class="relative mx-4 w-full max-w-md transform rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 transition-all dark:bg-gray-900 dark:ring-white/10">
+            <div class="relative mx-4 w-full max-w-md transform rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 transition-all dark:bg-gray-900 dark:ring-white/10">
                 <div class="flex items-center gap-4">
                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
                         <span v-html="TrashIcon()" class="text-red-600 dark:text-red-400 scale-150"></span>
@@ -753,11 +744,9 @@ onUnmounted(() => { clearCountdown(); });
                         Apakah Anda yakin ingin menghapus prestasi
                         <span class="font-semibold">"{{ selectedPrestasi?.nama_lomba }}"</span>?
                     </p>
-                    <div
-                        class="mt-2 rounded-lg bg-yellow-50 border border-yellow-200 p-3 dark:bg-yellow-900/20 dark:border-yellow-800">
+                    <div class="mt-2 rounded-lg bg-yellow-50 border border-yellow-200 p-3 dark:bg-yellow-900/20 dark:border-yellow-800">
                         <p class="text-xs text-yellow-800 dark:text-yellow-300">
-                            <strong>Peringatan:</strong> Data prestasi, foto, dan hubungan dengan siswa akan dihapus
-                            permanen.
+                            <strong>Peringatan:</strong> Data prestasi, foto, dan hubungan dengan siswa akan dihapus permanen.
                         </p>
                     </div>
                 </div>
@@ -779,12 +768,10 @@ onUnmounted(() => { clearCountdown(); });
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95"
             enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-200"
             leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
-            <div v-if="showErrorDeletePopup"
-                class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
+            <div v-if="showErrorDeletePopup" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
                 <div class="fixed inset-0 bg-black/20 backdrop-blur-sm" @click="closeErrorDeletePopup"></div>
                 <div class="relative mx-4 pointer-events-auto">
-                    <div
-                        class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10 max-w-sm w-full">
+                    <div class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10 max-w-sm w-full">
                         <div class="absolute right-4 top-4">
                             <button @click="closeErrorDeletePopup" type="button"
                                 class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-300">
@@ -792,14 +779,12 @@ onUnmounted(() => { clearCountdown(); });
                             </button>
                         </div>
                         <div class="flex items-center justify-center">
-                            <div
-                                class="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
                                 <span v-html="ExclamationIcon()" class="text-red-600 dark:text-red-400"></span>
                             </div>
                         </div>
                         <div class="mt-4 text-center">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Gagal Menghapus Prestasi!
-                            </h3>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Gagal Menghapus Prestasi!</h3>
                             <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{{ deleteErrorMessage }}</p>
                         </div>
                     </div>
@@ -811,12 +796,10 @@ onUnmounted(() => { clearCountdown(); });
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95"
             enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-200"
             leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
-            <div v-if="showSuccessDeletePopup"
-                class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
+            <div v-if="showSuccessDeletePopup" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
                 <div class="fixed inset-0 bg-black/20 backdrop-blur-sm" @click="closeSuccessDeletePopup"></div>
                 <div class="relative mx-4 pointer-events-auto">
-                    <div
-                        class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10 max-w-sm w-full">
+                    <div class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10 max-w-sm w-full">
                         <div class="absolute right-4 top-4">
                             <button @click="closeSuccessDeletePopup" type="button"
                                 class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-300">
@@ -824,17 +807,13 @@ onUnmounted(() => { clearCountdown(); });
                             </button>
                         </div>
                         <div class="flex items-center justify-center">
-                            <div
-                                class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
                                 <span v-html="CheckIcon()" class="text-green-600 dark:text-green-400"></span>
                             </div>
                         </div>
                         <div class="mt-4 text-center">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Prestasi Berhasil Dihapus!
-                            </h3>
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Data prestasi telah dihapus secara
-                                permanen
-                                dari sistem.</p>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Prestasi Berhasil Dihapus!</h3>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Data prestasi telah dihapus secara permanen dari sistem.</p>
                         </div>
                     </div>
                 </div>
@@ -845,12 +824,10 @@ onUnmounted(() => { clearCountdown(); });
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95"
             enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-200"
             leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
-            <div v-if="showSuccessCreatePopup"
-                class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
+            <div v-if="showSuccessCreatePopup" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
                 <div class="fixed inset-0 bg-black/20 backdrop-blur-sm" @click="closeSuccessCreatePopup"></div>
                 <div class="relative mx-4 pointer-events-auto">
-                    <div
-                        class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10 max-w-sm w-full">
+                    <div class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10 max-w-sm w-full">
                         <div class="absolute right-4 top-4">
                             <button @click="closeSuccessCreatePopup" type="button"
                                 class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-300">
@@ -858,16 +835,13 @@ onUnmounted(() => { clearCountdown(); });
                             </button>
                         </div>
                         <div class="flex items-center justify-center">
-                            <div
-                                class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
                                 <span v-html="CheckIcon()" class="text-green-600 dark:text-green-400"></span>
                             </div>
                         </div>
                         <div class="mt-4 text-center">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Prestasi Berhasil
-                                Ditambahkan!</h3>
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Data prestasi baru telah berhasil
-                                ditambahkan ke sistem.</p>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Prestasi Berhasil Ditambahkan!</h3>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Data prestasi baru telah berhasil ditambahkan ke sistem.</p>
                         </div>
                     </div>
                 </div>
@@ -878,12 +852,10 @@ onUnmounted(() => { clearCountdown(); });
         <Transition enter-active-class="transition-all duration-300" enter-from-class="opacity-0 scale-95"
             enter-to-class="opacity-100 scale-100" leave-active-class="transition-all duration-200"
             leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
-            <div v-if="showSuccessUpdatePopup"
-                class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
+            <div v-if="showSuccessUpdatePopup" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
                 <div class="fixed inset-0 bg-black/20 backdrop-blur-sm" @click="closeSuccessUpdatePopup"></div>
                 <div class="relative mx-4 pointer-events-auto">
-                    <div
-                        class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10 max-w-sm w-full">
+                    <div class="rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10 max-w-sm w-full">
                         <div class="absolute right-4 top-4">
                             <button @click="closeSuccessUpdatePopup" type="button"
                                 class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-300">
@@ -891,18 +863,13 @@ onUnmounted(() => { clearCountdown(); });
                             </button>
                         </div>
                         <div class="flex items-center justify-center">
-                            <div
-                                class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
                                 <span v-html="CheckIcon()" class="text-green-600 dark:text-green-400"></span>
                             </div>
                         </div>
                         <div class="mt-4 text-center">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Data Prestasi Berhasil
-                                Diperbarui!
-                            </h3>
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Perubahan data prestasi telah
-                                berhasil
-                                disimpan.</p>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Data Prestasi Berhasil Diperbarui!</h3>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Perubahan data prestasi telah berhasil disimpan.</p>
                         </div>
                     </div>
                 </div>

@@ -17,10 +17,12 @@ class Prestasi extends Model
         'tanggal',
         'foto',
         'deskripsi',
+        'siswa_manual',
     ];
 
     protected $casts = [
-        'tanggal' => 'date',
+        'tanggal'      => 'date',
+        'siswa_manual' => 'array',
     ];
 
     /**
