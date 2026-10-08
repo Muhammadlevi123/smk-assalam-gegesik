@@ -143,9 +143,28 @@ const dragOffset = ref(0);
 const containerWidth = ref(0);
 let teacherCarouselInterval: number | null = null;
 
+// Urutan tenaga kependidikan: Kepala Sekolah → Bendahara BOS → Bendahara → lainnya
+const normalisasi = (s?: string) =>
+    (s ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+const prioritasJabatan = (jabatan?: string): number => {
+    const j = normalisasi(jabatan);
+    if (j === 'kepala sekolah') return 0;      // persis "Kepala Sekolah" (Wakil Kepala Sekolah tidak ikut)
+    if (j === 'bendahara bos')  return 1;
+    if (j.startsWith('bendahara')) return 2;   // "Bendahara" dan variannya
+    return 3;
+};
+
+const tenagaTerurut = computed(() =>
+    (props.tenaga_kependidikan ?? [])
+        .map((t, idx) => ({ t, idx, prioritas: prioritasJabatan(t.jabatan) }))
+        .sort((a, b) => a.prioritas - b.prioritas || a.idx - b.idx)
+        .map(({ t }) => t)
+);
+
 const teachers = computed((): Teacher[] => {
     const list: Teacher[] = [];
-    props.tenaga_kependidikan?.forEach(t => list.push({
+    tenagaTerurut.value.forEach(t => list.push({
         id: `tenaga-${t.id}`,
         name: t.nama,
         position: t.jabatan?.toUpperCase() || 'STAF',
